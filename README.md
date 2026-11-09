@@ -29,4 +29,4 @@ The interface supports both desktop and mobile devices.
 
 ## Data and Privacy
 
-Board data and uploaded images are stored privately. The application does not require a separate server or database.
+Board data and uploaded images are stored privately.

@@ -1,0 +1,2297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https: http: data: blob:; connect-src https:; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Crect x='6' y='7' width='20' height='4' rx='2' fill='%23fff'/%3E%3Crect x='6' y='14' width='14' height='4' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='6' y='21' width='8' height='4' rx='2' fill='%23fff' opacity='.6'/%3E%3C/svg%3E">
+<title>Tier lists</title>
+<style>
+:root {
+  --bg: #f5f5f7; --surface: #ffffff; --fill: #ececf0; --fill-2: #e3e3e8;
+  --text: #1d1d1f; --text-2: #6e6e73; --text-3: #a1a1a6;
+  --sep: rgba(0, 0, 0, 0.1); --accent: #0071e3; --accent-ink: #ffffff; --accent-soft: rgba(0, 113, 227, 0.12);
+  --danger: #d70015; --ok: #1fa84f; --warn: #d97b00;
+  --bar: rgba(245, 245, 247, 0.78);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.25);
+  --scrim: rgba(0, 0, 0, 0.32);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --surface: #1c1c1e; --fill: #2c2c2e; --fill-2: #3a3a3c;
+    --text: #f5f5f7; --text-2: #a1a1a6; --text-3: #6e6e73;
+    --sep: rgba(255, 255, 255, 0.14); --accent: #0a84ff; --accent-soft: rgba(10, 132, 255, 0.2);
+    --danger: #ff453a; --ok: #30d158; --warn: #ff9f0a;
+    --bar: rgba(0, 0, 0, 0.72);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --scrim: rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --surface: #1c1c1e; --fill: #2c2c2e; --fill-2: #3a3a3c;
+  --text: #f5f5f7; --text-2: #a1a1a6; --text-3: #6e6e73;
+  --sep: rgba(255, 255, 255, 0.14); --accent: #0a84ff; --accent-soft: rgba(10, 132, 255, 0.2);
+  --danger: #ff453a; --ok: #30d158; --warn: #ff9f0a;
+  --bar: rgba(0, 0, 0, 0.72);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --scrim: rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; min-height: 100vh;
+}
+body.is-dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ico { display: inline-flex; line-height: 0; }
+.spacer, .grow { flex: 1; }
+
+/* Top bar */
+.topbar { position: sticky; top: 0; z-index: 20; background: var(--bar); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--sep); }
+.topbar-in { max-width: 1240px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 6px; min-height: 56px; }
+.brand { font-size: 19px; font-weight: 650; letter-spacing: -0.02em; }
+
+/* Buttons */
+.btn { height: 36px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--fill); color: var(--text); font-weight: 560; transition: background 0.15s, opacity 0.15s, transform 0.1s; white-space: nowrap; }
+.btn:hover { background: var(--fill-2); }
+.btn:active { transform: scale(0.97); }
+.btn.sm { height: 30px; padding: 0 12px; font-size: 13.5px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.ghost:hover { background: var(--accent-soft); }
+.btn.danger { background: transparent; color: var(--danger); }
+.btn.danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.btn.danger.solid { background: var(--danger); color: #fff; }
+.btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+.icon-btn { width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; flex: none; }
+.icon-btn:hover { background: var(--fill); color: var(--text); }
+.icon-btn:disabled { opacity: 0.3; pointer-events: none; }
+
+/* Save status */
+.status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-2); padding: 0 10px; white-space: nowrap; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.status.warn .dot { background: var(--warn); }
+.status.err { color: var(--danger); }
+.status.err .dot { background: var(--danger); }
+.status.busy .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.status .short { display: none; }
+@media (max-width: 520px) {
+  .status .long { display: none; }
+  .status .short { display: inline; }
+  .status { padding: 0 4px; gap: 5px; font-size: 12.5px; }
+  .topbar-in { gap: 2px; padding: 8px 10px; }
+}
+
+/* Board header */
+.board-main { max-width: 1240px; margin: 0 auto; padding: 18px 16px 80px; }
+.board-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.title-input { width: 100%; border: 0; background: transparent; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; padding: 2px 0; outline: none; border-radius: 6px; }
+.desc-input { width: 100%; border: 0; background: transparent; resize: none; overflow: hidden; color: var(--text-2); font-size: 15px; padding: 2px 0; outline: none; min-height: 24px; }
+.title-input::placeholder, .desc-input::placeholder { color: var(--text-3); }
+.title-input:focus, .desc-input:focus { box-shadow: 0 0 0 2px var(--accent-soft); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin-top: 10px; }
+.size-ctl { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13.5px; }
+.size-ctl input { width: 150px; }
+input[type="range"] { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); border: 0; }
+input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); border: 0; }
+
+.switch { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--text-2); cursor: pointer; user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch-ui { width: 42px; height: 26px; border-radius: 13px; background: var(--fill-2); position: relative; transition: background 0.2s; flex: none; }
+.switch-ui::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
+.switch input:checked + .switch-ui { background: var(--ok); }
+.switch input:checked + .switch-ui::after { transform: translateX(16px); }
+.switch input:focus-visible + .switch-ui { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seg { display: inline-flex; background: var(--fill); border-radius: 9px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 4px 14px; border-radius: 7px; font-size: 13.5px; font-weight: 560; color: var(--text-2); }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+
+/* Tiers */
+.tiers { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; gap: 1px; background-color: var(--sep); }
+.tier { display: flex; background: var(--surface); min-height: calc(var(--tile) + 16px); }
+.tier-label { flex: none; width: clamp(64px, calc(var(--tile) * 0.95), 124px); border: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 6px; font-weight: 700; font-size: clamp(14px, calc(var(--tile) * 0.22), 26px); line-height: 1.15; word-break: break-word; overflow-wrap: anywhere; letter-spacing: -0.01em; }
+.tier-label:hover { filter: brightness(1.05); }
+.no-tiers { background: var(--surface); padding: 28px; text-align: center; color: var(--text-2); }
+.zone { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; padding: 8px; min-height: calc(var(--tile) + 16px); transition: background 0.12s; min-width: 0; }
+.zone.drop-over { background: var(--accent-soft); }
+.zone-empty { color: var(--text-3); font-size: 13px; align-self: center; padding: 0 6px; pointer-events: none; }
+
+.pool-wrap { margin-top: 22px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding-bottom: 4px; }
+.pool-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 14px 16px 6px; }
+.pool-head h3 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 8px; }
+.count { color: var(--text-3); font-size: 14px; font-weight: 500; }
+.pool-actions { display: flex; gap: 6px; }
+.zone.pool { padding: 10px 12px 14px; }
+
+/* Tiles */
+.tile { width: var(--tile); flex: none; border-radius: 10px; overflow: hidden; background: var(--fill); cursor: grab; position: relative; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: opacity 0.12s; }
+.tile.named { background: var(--fill); }
+.tile-media { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.tile-media img { width: 100%; height: 100%; display: block; -webkit-touch-callout: none; pointer-events: none; }
+.fit-fill .tile-media img { object-fit: cover; }
+.fit-fit .tile-media img { object-fit: contain; }
+.tile-media.ph { color: var(--text-3); }
+.ph-name { padding: 6px; text-align: center; font-weight: 600; font-size: clamp(10px, calc(var(--tile) * 0.14), 16px); line-height: 1.2; color: var(--text-2); overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
+.tile-media.loading::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%); animation: shimmer 1.3s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.tile-name { padding: 4px 5px 5px; font-size: clamp(10.5px, calc(var(--tile) * 0.13), 14px); line-height: 1.25; text-align: center; font-weight: 560; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; background: var(--surface); border-top: 1px solid var(--sep); }
+.tile.dragging { opacity: 0.28; }
+.tile.ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; box-shadow: var(--shadow-lg); opacity: 0.96; cursor: grabbing; transition: none; will-change: transform; }
+.drop-line { position: fixed; left: 0; top: 0; width: 4px; border-radius: 2px; background: var(--accent); z-index: 900; pointer-events: none; box-shadow: 0 0 0 3px var(--accent-soft); display: none; }
+.tile:focus-visible { outline-offset: 1px; }
+
+/* Home */
+.home-main { max-width: 1100px; margin: 0 auto; padding: 22px 16px 80px; }
+.home-actions { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.board-card-wrap { position: relative; }
+.board-card { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 16px 16px; color: inherit; text-decoration: none; height: 100%; transition: transform 0.15s, box-shadow 0.15s; }
+.board-card:hover { transform: translateY(-2px); }
+.stripe { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px; gap: 2px; }
+.stripe i { flex: 1; display: block; }
+.card-title { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; padding-right: 34px; overflow-wrap: anywhere; }
+.card-desc { color: var(--text-2); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-meta { color: var(--text-3); font-size: 13px; margin-top: auto; padding-top: 4px; }
+.card-more { position: absolute; top: 28px; right: 8px; }
+.empty { grid-column: 1 / -1; text-align: center; padding: 60px 16px; }
+.empty h2 { font-size: 22px; margin-bottom: 6px; letter-spacing: -0.02em; }
+
+/* Screens */
+.center-screen, .center-inline { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.center-screen { min-height: 70vh; padding: 24px 16px; }
+.center-inline { padding: 10px; }
+.card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 28px; width: 100%; }
+.card.narrow { max-width: 440px; }
+.h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; }
+.spinner { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--fill-2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Forms and layout helpers */
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack.lg { gap: 20px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.row.wrap { flex-wrap: wrap; }
+.row.center { align-items: center; }
+.row.between { justify-content: space-between; flex-wrap: wrap; }
+.lbl { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); font-weight: 560; }
+.field { width: 100%; min-height: 38px; padding: 8px 12px; border-radius: 10px; border: 1px solid transparent; background: var(--fill); color: var(--text); outline: none; transition: border-color 0.15s, box-shadow 0.15s; font-weight: 400; }
+.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+textarea.field { resize: vertical; line-height: 1.4; }
+.field.hex { width: 110px; font-variant-numeric: tabular-nums; }
+.msg { color: var(--text-2); line-height: 1.5; }
+.hint { color: var(--text-2); font-size: 13.5px; }
+.sub { font-size: 15px; font-weight: 650; }
+.form-err { color: var(--danger); font-size: 13.5px; min-height: 0; }
+.form-err:empty { display: none; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.fail-list { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13.5px; }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--sep); padding: 0; }
+.swatch.on { box-shadow: 0 0 0 2px var(--accent); }
+.color-input { width: 44px; height: 38px; padding: 0; border: 0; background: none; border-radius: 10px; }
+.tier-prev { height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; }
+.item-prev { width: 100%; max-width: 280px; aspect-ratio: 1; align-self: center; border: 0; border-radius: 14px; background: var(--fill); overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; color: var(--text-3); cursor: zoom-in; }
+.item-prev.ph { cursor: default; }
+.item-prev img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* Modal */
+.overlay { position: fixed; inset: 0; z-index: 100; background: var(--scrim); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade 0.16s ease-out; overflow-y: auto; }
+.overlay.out { opacity: 0; transition: opacity 0.16s; pointer-events: none; }
+.sheet { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-lg); width: 100%; max-width: 420px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; animation: pop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.1); margin: auto; }
+.sheet.wide { max-width: 520px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 4px 22px; gap: 8px; }
+.sheet-head h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+.sheet-body { padding: 10px 22px 6px; overflow-y: auto; }
+.sheet-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 14px 22px 20px; flex-wrap: wrap; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.96) translateY(6px); } }
+@media (max-width: 560px) {
+  .overlay { align-items: flex-end; padding: 0; }
+  .sheet, .sheet.wide { max-width: none; border-radius: 22px 22px 0 0; max-height: 92vh; animation: rise 0.22s ease-out; margin: auto 0 0; }
+  .sheet-actions { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+}
+@keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+
+/* Progress */
+.progress { display: flex; flex-direction: column; gap: 10px; padding: 6px 0 14px; }
+.bar { height: 6px; background: var(--fill-2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width 0.15s; }
+.bar-text { color: var(--text-2); font-size: 13.5px; }
+
+/* Menu */
+.menu { position: fixed; z-index: 150; min-width: 200px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg), 0 0 0 1px var(--sep); padding: 6px; animation: fade 0.12s; }
+.menu-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 9px 12px; border-radius: 8px; font-size: 14.5px; }
+.menu-item:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.menu-item.danger { color: var(--danger); }
+.menu-item.danger:hover { background: var(--danger); color: #fff; }
+.menu-item:disabled { opacity: 0.4; cursor: default; }
+.menu-sep { height: 1px; background: var(--sep); margin: 5px 6px; }
+
+/* Toasts */
+#toasts { position: fixed; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 300; pointer-events: none; padding: 0 16px; }
+.toast { pointer-events: auto; background: #2c2c2e; color: #f5f5f7; padding: 10px 16px; border-radius: 14px; box-shadow: var(--shadow-lg); font-size: 14px; max-width: 460px; display: flex; gap: 14px; align-items: center; animation: rise 0.2s ease-out; }
+.toast.out { opacity: 0; transition: opacity 0.2s; }
+.toast-act { border: 0; background: none; color: #64a9ff; font-weight: 600; padding: 0; }
+
+/* Viewer */
+.viewer { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 56px 56px 40px; animation: fade 0.16s; }
+.viewer-img { max-width: 100%; max-height: calc(100vh - 150px); object-fit: contain; border-radius: 10px; box-shadow: var(--shadow-lg); background: rgba(255, 255, 255, 0.04); }
+.viewer-cap { color: #f5f5f7; font-size: 17px; font-weight: 600; text-align: center; min-height: 24px; }
+.viewer-close, .viewer-nav { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.14); color: #fff; display: flex; align-items: center; justify-content: center; }
+.viewer-close:hover, .viewer-nav:hover { background: rgba(255, 255, 255, 0.26); }
+.viewer-close { top: 14px; right: 14px; }
+.viewer-nav { top: 50%; margin-top: -22px; }
+.viewer-nav.left { left: 10px; }
+.viewer-nav.right { right: 10px; }
+@media (max-width: 560px) { .viewer { padding: 60px 12px 30px; } .viewer-nav { top: auto; bottom: 18px; margin: 0; } }
+
+/* File drop hint */
+body.file-over::after { content: "Drop images to add them"; position: fixed; inset: 10px; border: 3px dashed var(--accent); border-radius: 22px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 650; z-index: 400; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .title-input { font-size: 25px; }
+  .board-main { padding-top: 12px; }
+  .tiers, .pool-wrap { border-radius: 14px; }
+  .zone { gap: 4px; padding: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toasts" aria-live="polite"></div>
+<script>
+// ---------- Utilities ----------
+const $ = (s, r = document) => r.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+const MAX_DIM = 800;
+const MAX_FILE = 50 * 1024 * 1024;
+const MAX_URL = 25 * 1024 * 1024;
+
+function add(el, kids) {
+  for (const k of kids.flat(Infinity)) {
+    if (k == null || k === false) continue;
+    el.append(k.nodeType ? k : document.createTextNode(String(k)));
+  }
+}
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const k in props || {}) {
+    const v = props[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') Object.assign(el.style, v);
+    else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+    else if (k === 'value' || k === 'checked' || k === 'disabled' || k === 'selected') el[k] = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  add(el, kids);
+  return el;
+}
+
+const ICONS = {
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+  more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  auto: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  chev: '<path d="M9 5l7 7-7 7"/>',
+  alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.4"/>',
+  dot: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/>',
+  left: '<path d="M15 5l-7 7 7 7"/>',
+  right: '<path d="M9 5l7 7-7 7"/>'
+};
+function icon(name, size = 20) {
+  const s = h('span', { class: 'ico', 'aria-hidden': 'true' });
+  s.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ''}</svg>`;
+  return s;
+}
+
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
+
+function normHex(c) {
+  const m = String(c || '').trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return null;
+  let x = m[1].toLowerCase();
+  if (x.length === 3) x = x.split('').map(ch => ch + ch).join('');
+  return '#' + x;
+}
+function textOn(hex) {
+  const x = normHex(hex) || '#888888';
+  const r = parseInt(x.slice(1, 3), 16), g = parseInt(x.slice(3, 5), 16), b = parseInt(x.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#1d1d1f' : '#ffffff';
+}
+
+function b64FromText(t) {
+  const bytes = new TextEncoder().encode(t);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function textFromB64(b) {
+  const s = atob(b.replace(/\s/g, ''));
+  const bytes = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function blobToDataURL(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+async function blobToB64(blob) { return (await blobToDataURL(blob)).split(',')[1] || ''; }
+function dataURLToBlob(u) {
+  const m = String(u || '').match(/^data:(image\/(?:webp|png|jpeg|gif|avif));base64,([\s\S]*)$/);
+  if (!m) return null;
+  const bin = atob(m[2]);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: m[1] });
+}
+const EXT = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/avif': 'avif' };
+const MIME = { webp: 'image/webp', jpg: 'image/jpeg', png: 'image/png', gif: 'image/gif', avif: 'image/avif' };
+const mimeOf = name => MIME[(String(name).split('.').pop() || '').toLowerCase()] || 'application/octet-stream';
+const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) || 'tier-list';
+const norm = s => String(s || '').trim().toLowerCase();
+const nameFromFile = f => f.name.replace(/\.[^.]+$/, '');
+function nameFromUrl(u) {
+  try {
+    const last = new URL(u).pathname.split('/').filter(Boolean).pop() || '';
+    return decodeURIComponent(last).replace(/\.[a-z0-9]{2,5}$/i, '');
+  } catch { return ''; }
+}
+const isImageFile = f => /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|avif|bmp|svg)$/i.test(f.name);
+
+// ---------- State ----------
+class GHError extends Error {
+  constructor(status, message, extra) { super(message); this.status = status; Object.assign(this, extra); }
+}
+class Conflict extends Error {
+  constructor() { super('conflict'); }
+}
+
+const S = {
+  cfg: null,
+  prefs: { theme: 'auto', size: null, useNames: true },
+  repo: { commit: null, files: new Map() },
+  index: { boards: [], sha: null },
+  board: null,
+  boardSha: null,
+  lastSavedJson: '',
+  hist: { past: [], future: [] },
+  dirty: false, saving: false, err: null, conflict: null, progress: null,
+  savePromise: null, savedAt: null,
+  lastSaveEnd: 0, lastChange: 0, dirtySince: 0, backoffUntil: 0, lastCheck: 0,
+  indexStale: false,
+  imgs: new Map(), imgFail: new Set(), imgLoading: Promise.resolve(), loadToken: 0
+};
+
+// ---------- GitHub API ----------
+const API = 'https://api.github.com';
+let postChain = Promise.resolve();
+let lastPost = 0;
+// Writes are serialized and spaced out to stay well under GitHub's secondary rate limit
+// (80 content-creating requests per minute). 1.2 s apart is about 50 per minute.
+const WRITE_GAP_MS = 1200;
+function paced(fn) {
+  const p = postChain.then(async () => {
+    const wait = lastPost + WRITE_GAP_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastPost = Date.now();
+    return fn();
+  });
+  postChain = p.catch(() => {});
+  return p;
+}
+function R(path) {
+  return `/repos/${encodeURIComponent(S.cfg.owner)}/${encodeURIComponent(S.cfg.repo)}${path}`;
+}
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+
+async function rawFetch(method, path, body, accept) {
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method,
+      cache: 'no-store',
+      headers: {
+        Authorization: 'Bearer ' + S.cfg.token,
+        Accept: accept || 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(body ? { 'Content-Type': 'application/json' } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch {
+    throw new GHError(0, 'Network error. Check your connection.');
+  }
+  if (!res.ok) {
+    let msg = '';
+    try { msg = (await res.json()).message || ''; } catch { /* ignore */ }
+    const remaining = res.headers.get('x-ratelimit-remaining');
+    const reset = Number(res.headers.get('x-ratelimit-reset')) || 0;
+    const limited = res.status === 429 || (res.status === 403 && (/rate limit|abuse|secondary/i.test(msg) || remaining === '0'));
+    let retryAfter = Number(res.headers.get('retry-after')) || 0;
+    if (limited && !retryAfter && reset) retryAfter = Math.max(5, reset - Math.floor(Date.now() / 1000));
+    throw new GHError(res.status, msg || res.statusText, { limited, retryAfter });
+  }
+  return res;
+}
+const gh = (method, path, body) => method === 'GET'
+  ? rawFetch(method, path, null).then(r => r.json())
+  : paced(() => rawFetch(method, path, body).then(r => (r.status === 204 ? null : r.json())));
+
+async function getHead() {
+  const r = await gh('GET', R(`/git/ref/heads/${S.cfg.branch}`));
+  return r.object.sha;
+}
+async function getTreeFiles(commitSha) {
+  const c = await gh('GET', R(`/git/commits/${commitSha}`));
+  const t = await gh('GET', R(`/git/trees/${c.tree.sha}?recursive=1`));
+  const files = new Map();
+  for (const e of t.tree) if (e.type === 'blob') files.set(e.path, e.sha);
+  return { treeSha: c.tree.sha, files };
+}
+async function refreshRepo() {
+  const commit = await getHead();
+  const { files } = await getTreeFiles(commit);
+  S.repo = { commit, files };
+}
+async function getFile(path) {
+  try {
+    const r = await gh('GET', R(`/contents/${encPath(path)}?ref=${encodeURIComponent(S.cfg.branch)}`));
+    let text;
+    if (r.encoding === 'base64' && r.content) text = textFromB64(r.content);
+    else {
+      const res = await rawFetch('GET', R(`/git/blobs/${r.sha}`), null, 'application/vnd.github.raw+json');
+      text = await res.text();
+    }
+    return { text, sha: r.sha };
+  } catch (e) {
+    if (e.status === 404) return null;
+    throw e;
+  }
+}
+async function putFile(path, text, sha) {
+  try {
+    const r = await gh('PUT', R(`/contents/${encPath(path)}`), {
+      message: `Update ${path}`,
+      content: b64FromText(text),
+      branch: S.cfg.branch,
+      ...(sha ? { sha } : {})
+    });
+    return { sha: r.content.sha, commit: r.commit.sha };
+  } catch (e) {
+    if (e.status === 409 || (e.status === 422 && /sha|exist/i.test(e.message))) throw new Conflict();
+    throw e;
+  }
+}
+async function createBlob(u) {
+  const body = u.blob
+    ? { content: await blobToB64(u.blob), encoding: 'base64' }
+    : { content: u.text, encoding: 'utf-8' };
+  const r = await gh('POST', R('/git/blobs'), body);
+  return r.sha;
+}
+
+// Atomic multi-file commit through the Git Data API.
+// plan(files) receives the freshly fetched file list and returns { upload, copy, remove }.
+async function commitFiles(message, plan) {
+  const uploaded = new Map();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const head = await getHead();
+    const { treeSha, files } = await getTreeFiles(head);
+    const p = plan(files);
+    const entries = [];
+    const total = p.upload.filter(u => !uploaded.has(u.path)).length;
+    let done = 0;
+    for (const u of p.upload) {
+      let sha = uploaded.get(u.path);
+      if (!sha) {
+        sha = await createBlob(u);
+        uploaded.set(u.path, sha);
+        done++;
+        S.progress = { done, total };
+        renderStatus();
+      }
+      entries.push({ path: u.path, mode: '100644', type: 'blob', sha });
+    }
+    for (const c of p.copy || []) entries.push({ path: c.path, mode: '100644', type: 'blob', sha: c.sha });
+    for (const path of p.remove || []) if (files.has(path)) entries.push({ path, mode: '100644', type: 'blob', sha: null });
+    const tree = await gh('POST', R('/git/trees'), { base_tree: treeSha, tree: entries });
+    const commit = await gh('POST', R('/git/commits'), { message, tree: tree.sha, parents: [head] });
+    try {
+      await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: commit.sha });
+    } catch (e) {
+      if (e.status === 422 || e.status === 409) continue; // branch moved; try again
+      throw e;
+    }
+    const nf = new Map(files);
+    for (const e of entries) { if (e.sha === null) nf.delete(e.path); else nf.set(e.path, e.sha); }
+    S.repo = { commit: commit.sha, files: nf };
+    return { files: nf, commit: commit.sha };
+  }
+  throw new GHError(409, 'The repository kept changing while saving. Try again.');
+}
+
+// index.json: the list of boards. Re-reads and retries on conflict, so two devices can add boards safely.
+async function updateIndex(mutator) {
+  for (let i = 0; i < 4; i++) {
+    const f = await getFile('index.json');
+    const idx = f ? JSON.parse(f.text) : { v: 1, boards: [] };
+    if (!Array.isArray(idx.boards)) idx.boards = [];
+    mutator(idx);
+    try {
+      const r = await putFile('index.json', JSON.stringify(idx, null, 2), f ? f.sha : null);
+      S.index = { boards: idx.boards, sha: r.sha };
+      S.repo.files.set('index.json', r.sha);
+      S.repo.commit = r.commit;
+      return;
+    } catch (e) {
+      if (e instanceof Conflict) continue;
+      throw e;
+    }
+  }
+  throw new GHError(409, 'The board list kept changing. Try again.');
+}
+async function loadIndex() {
+  const f = await getFile('index.json');
+  const idx = f ? JSON.parse(f.text) : { boards: [] };
+  S.index = { boards: Array.isArray(idx.boards) ? idx.boards : [], sha: f ? f.sha : null };
+}
+
+function friendlyError(e) {
+  if (!e) return '';
+  if (e.status === 401) return 'GitHub rejected the token. It might have expired. Reconnect in Settings.';
+  if (e.status === 403 && e.limited) return 'GitHub is limiting requests. The app will retry shortly.';
+  if (e.status === 403) return 'The token can’t write to this repository. It needs Contents: Read and write.';
+  if (e.status === 404) return 'Repository not found, or the token has no access to it.';
+  return e.message || 'Something went wrong.';
+}
+
+// ---------- Board model ----------
+const DEFAULT_TIERS = [['S', '#ff6b6b'], ['A', '#ffa94d'], ['B', '#ffd43b'], ['C', '#a9e34b'], ['D', '#4dabf7']];
+const PALETTE = ['#ff6b6b', '#ff8a5b', '#ffa94d', '#ffd43b', '#a9e34b', '#51cf66', '#38d9a9', '#3bc9db', '#4dabf7', '#748ffc', '#9775fa', '#da77f2', '#f783ac', '#adb5bd', '#6e6e73'];
+const safeFile = f => (typeof f === 'string' && /^[\w.-]{1,80}$/.test(f) ? f : null);
+
+function newBoard(title, description) {
+  return {
+    id: uid(), title: title || '', description: description || '', showNames: true, fit: 'fill',
+    tiers: DEFAULT_TIERS.map(([name, color]) => ({ id: uid(), name, color, items: [] })),
+    pool: [], items: {}
+  };
+}
+// Canonical serialization: used for saving and for detecting changes.
+function ser(b, indent) {
+  const items = {};
+  for (const k of Object.keys(b.items).sort()) {
+    const it = b.items[k];
+    items[k] = { id: it.id, name: it.name || '', img: it.img || null, link: it.link || null };
+  }
+  return JSON.stringify({
+    v: 1, id: b.id, title: b.title, description: b.description, showNames: !!b.showNames, fit: b.fit,
+    tiers: b.tiers.map(t => ({ id: t.id, name: t.name, color: t.color, items: t.items })),
+    pool: b.pool, items
+  }, null, indent);
+}
+function parseBoard(text) {
+  const o = typeof text === 'string' ? JSON.parse(text) : text;
+  const b = {
+    id: String(o.id || ''), title: String(o.title || ''), description: String(o.description || ''),
+    showNames: o.showNames !== false, fit: o.fit === 'fit' ? 'fit' : 'fill', tiers: [], pool: [], items: {}
+  };
+  for (const [k, v] of Object.entries(o.items || {})) {
+    b.items[k] = { id: k, name: String(v.name || ''), img: safeFile(v.img), link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null };
+  }
+  const seen = new Set();
+  for (const t of o.tiers || []) {
+    const nt = { id: String(t.id || uid()), name: String(t.name ?? ''), color: normHex(t.color) || '#8e8e93', items: [] };
+    for (const id of t.items || []) if (b.items[id] && !seen.has(id)) { seen.add(id); nt.items.push(id); }
+    b.tiers.push(nt);
+  }
+  for (const id of o.pool || []) if (b.items[id] && !seen.has(id)) { seen.add(id); b.pool.push(id); }
+  for (const id of Object.keys(b.items)) if (!seen.has(id)) b.pool.push(id);
+  return b;
+}
+const hasImage = it => !!(it.img || it.link);
+const referencedImages = b => { const s = new Set(); for (const it of Object.values(b.items)) if (it.img) s.add(it.img); return s; };
+const boardPath = id => `boards/${id}/board.json`;
+const imgDir = id => `boards/${id}/img/`;
+function findZone(b, id) {
+  if (b.pool.includes(id)) return 'pool';
+  const t = b.tiers.find(t => t.items.includes(id));
+  return t ? t.id : null;
+}
+function zoneList(b, zone) {
+  return zone === 'pool' ? b.pool : (b.tiers.find(t => t.id === zone) || {}).items;
+}
+function removeFromAll(b, id) {
+  b.pool = b.pool.filter(x => x !== id);
+  for (const t of b.tiers) t.items = t.items.filter(x => x !== id);
+}
+function displayOrder(b) { return [...b.tiers.flatMap(t => t.items), ...b.pool]; }
+
+// ---------- History and mutation ----------
+function mutate(fn) {
+  const before = ser(S.board);
+  fn(S.board);
+  if (ser(S.board) === before) return false;
+  S.hist.past.push(before);
+  if (S.hist.past.length > 100) S.hist.past.shift();
+  S.hist.future = [];
+  afterChange();
+  return true;
+}
+function doUndo() {
+  if (!S.board || !S.hist.past.length) return;
+  S.hist.future.push(ser(S.board));
+  S.board = parseBoard(S.hist.past.pop());
+  afterChange();
+}
+function doRedo() {
+  if (!S.board || !S.hist.future.length) return;
+  S.hist.past.push(ser(S.board));
+  S.board = parseBoard(S.hist.future.pop());
+  afterChange();
+}
+function recomputeDirty() {
+  const d = !!S.board && ser(S.board) !== S.lastSavedJson;
+  if (d && !S.dirty) S.dirtySince = Date.now();
+  S.dirty = d;
+}
+function afterChange() {
+  S.lastChange = Date.now();
+  recomputeDirty();
+  if (typeof renderBody === 'function' && $('#boardBody')) { renderBody(); syncHeader(); renderTopbar(); }
+}
+
+// ---------- Saving ----------
+async function saveNow(manual) {
+  if (!S.board) return true;
+  if (S.saving) return S.savePromise;
+  if (S.conflict) { if (manual) showConflict(); return false; }
+  recomputeDirty();
+  if (!S.dirty) {
+    if (manual) toast('Everything is saved');
+    return true;
+  }
+  S.saving = true; S.err = null; S.progress = null;
+  renderStatus();
+  const p = (async () => {
+    const b = S.board;
+    const text = ser(b, 2), compact = ser(b);
+    try {
+      await doSave(b, text);
+      S.lastSavedJson = compact; S.lastSaveEnd = Date.now(); S.savedAt = new Date();
+      try { await syncIndexEntry(b); S.indexStale = false; }
+      catch { S.indexStale = true; }
+      return true;
+    } catch (e) {
+      if (e instanceof Conflict) { await prepareConflict(); return false; }
+      S.err = e;
+      S.backoffUntil = Date.now() + (e.limited ? Math.max(30, e.retryAfter || 60) : 15) * 1000;
+      toast(friendlyError(e));
+      return false;
+    } finally {
+      S.saving = false; S.progress = null;
+      recomputeDirty();
+      renderStatus(); renderTopbar();
+    }
+  })();
+  S.savePromise = p;
+  return p;
+}
+
+async function doSave(b, text) {
+  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b);
+  const missing = [...refd].filter(f => !S.repo.files.has(dir + f) && S.imgs.has(f));
+  const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
+  if (!missing.length && !orphans.length) {
+    // Light path: one request.
+    const r = await putFile(bp, text, S.boardSha);
+    S.boardSha = r.sha; S.repo.files.set(bp, r.sha); S.repo.commit = r.commit;
+    return;
+  }
+  const res = await commitFiles(`Update ${b.title || 'board'}`, files => {
+    if ((files.get(bp) || null) !== (S.boardSha || null)) throw new Conflict();
+    const upload = [{ path: bp, text }];
+    for (const f of refd) if (!files.has(dir + f) && S.imgs.has(f)) upload.push({ path: dir + f, blob: S.imgs.get(f).blob });
+    const remove = [...files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
+    return { upload, remove };
+  });
+  S.boardSha = res.files.get(bp);
+}
+
+// The board list stores just enough to draw a card: title, description, tier colors, item count.
+const boardMeta = b => ({ title: b.title, description: b.description, colors: b.tiers.map(t => t.color), count: Object.keys(b.items).length });
+async function syncIndexEntry(b) {
+  const meta = boardMeta(b);
+  const e = S.index.boards.find(x => x.id === b.id);
+  if (e && JSON.stringify([e.title, e.description || '', e.colors || [], e.count || 0]) === JSON.stringify([meta.title, meta.description, meta.colors, meta.count])) return;
+  await updateIndex(idx => {
+    const x = idx.boards.find(y => y.id === b.id);
+    if (x) Object.assign(x, meta);
+    else idx.boards.push({ id: b.id, ...meta });
+  });
+}
+
+// Autosave: at most once every 10 seconds, only when something changed.
+function tick() {
+  if (!S.board || S.saving || S.conflict) return;
+  const now = Date.now();
+  if (now < S.backoffUntil) return;
+  if (!S.dirty) {
+    if (S.indexStale && now - S.lastSaveEnd > 15000) {
+      syncIndexEntry(S.board).then(() => { S.indexStale = false; }).catch(() => { S.lastSaveEnd = Date.now(); });
+    }
+    return;
+  }
+  if (now - S.lastSaveEnd < 10000) return;
+  if (now - S.lastChange < 1500 && now - S.dirtySince < 20000) return;
+  saveNow(false);
+}
+
+// ---------- Conflicts ----------
+async function prepareConflict() {
+  let remote = null;
+  try {
+    await refreshRepo();
+    remote = await getFile(boardPath(S.board.id));
+  } catch (e) {
+    S.err = e; return;
+  }
+  S.conflict = { remote };
+  renderStatus();
+  showConflict();
+}
+function showConflict() {
+  if (!S.conflict) return;
+  const gone = !S.conflict.remote;
+  const m = modal({
+    title: gone ? 'Board was deleted elsewhere' : 'Changed on another device',
+    body: h('p', { class: 'msg' }, gone
+      ? 'This board no longer exists on GitHub. You can save your version again, or discard it.'
+      : 'This board was saved from another device after you opened it. Choose which version to keep.'),
+    dismiss: false,
+    actions: [
+      btn('Decide later', '', () => m.close()),
+      btn(gone ? 'Discard mine' : 'Use the other version', '', async () => {
+        m.close();
+        if (gone) { S.conflict = null; S.board = null; S.dirty = false; location.hash = ''; return; }
+        const r = S.conflict.remote;
+        S.conflict = null;
+        adoptRemote(r.text, r.sha);
+      }),
+      btn('Keep mine', 'primary', () => {
+        const r = S.conflict.remote;
+        S.boardSha = r ? r.sha : null;
+        S.conflict = null;
+        m.close();
+        saveNow(true);
+      })
+    ]
+  });
+}
+function adoptRemote(text, sha) {
+  const nb = parseBoard(text);
+  nb.id = S.board.id;
+  S.board = nb; S.boardSha = sha;
+  S.lastSavedJson = ser(nb);
+  S.hist = { past: [], future: [] };
+  S.dirty = false;
+  startImageLoad();
+  renderBody(); syncHeader(); renderTopbar();
+}
+
+// ---------- Images ----------
+function loadImg(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('This image format can’t be read by the browser.'));
+    img.src = url;
+  });
+}
+function canvasToBlob(c, type, q) { return new Promise(res => c.toBlob(res, type, q)); }
+
+// WebP at or under 800 px is kept unchanged. Everything else becomes WebP, at most 800 px.
+// Browsers that can't encode WebP (some Safari versions) fall back to JPEG.
+async function processImage(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await loadImg(url);
+    const w = img.naturalWidth || MAX_DIM, h2 = img.naturalHeight || MAX_DIM;
+    if (blob.type === 'image/webp' && Math.max(w, h2) <= MAX_DIM) return { blob, ext: 'webp' };
+    const s = Math.min(1, MAX_DIM / Math.max(w, h2));
+    const tw = Math.max(1, Math.round(w * s)), th = Math.max(1, Math.round(h2 * s));
+    let src = img, cw = w, ch = h2;
+    while (cw / 2 > tw && ch / 2 > th) {
+      const nw = Math.ceil(cw / 2), nh = Math.ceil(ch / 2);
+      const c = document.createElement('canvas');
+      c.width = nw; c.height = nh;
+      c.getContext('2d').drawImage(src, 0, 0, nw, nh);
+      src = c; cw = nw; ch = nh;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = tw; canvas.height = th;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, tw, th);
+    let out = await canvasToBlob(canvas, 'image/webp', 0.85);
+    if (out && out.type === 'image/webp') return { blob: out, ext: 'webp' };
+    const c2 = document.createElement('canvas');
+    c2.width = tw; c2.height = th;
+    const x2 = c2.getContext('2d');
+    x2.fillStyle = '#fff'; x2.fillRect(0, 0, tw, th); x2.drawImage(canvas, 0, 0);
+    out = await canvasToBlob(c2, 'image/jpeg', 0.88);
+    if (!out) throw new Error('Could not convert the image.');
+    return { blob: out, ext: 'jpg' };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+function registerImage(out) {
+  const f = `${uid()}.${out.ext}`;
+  S.imgs.set(f, { blob: out.blob, url: URL.createObjectURL(out.blob) });
+  return f;
+}
+
+async function fetchFromUrl(raw) {
+  let u = String(raw).trim();
+  if (/^http:\/\//i.test(u)) u = 'https://' + u.slice(7);
+  let res;
+  try {
+    res = await fetch(u, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' });
+  } catch {
+    const e = new Error('The site blocks copying its images.'); e.code = 'blocked'; throw e;
+  }
+  if (!res.ok) { const e = new Error(`The server returned ${res.status}.`); e.code = 'http'; throw e; }
+  const len = Number(res.headers.get('content-length')) || 0;
+  if (len > MAX_URL) { const e = new Error('The file is larger than 25 MB.'); e.code = 'big'; throw e; }
+  const blob = await res.blob();
+  if (blob.size > MAX_URL) { const e = new Error('The file is larger than 25 MB.'); e.code = 'big'; throw e; }
+  return { blob, url: u };
+}
+
+// ---------- Loading board images from GitHub ----------
+async function fetchBlobCached(sha, name) {
+  const key = '/__tl/' + sha;
+  try {
+    const c = await caches.open('tl-img-v1');
+    const hit = await c.match(key);
+    if (hit) return await hit.blob();
+  } catch { /* cache unavailable */ }
+  const res = await rawFetch('GET', R(`/git/blobs/${sha}`), null, 'application/vnd.github.raw+json');
+  const type = mimeOf(name);
+  const blob = new Blob([await res.arrayBuffer()], { type });
+  try {
+    const c = await caches.open('tl-img-v1');
+    await c.put(key, new Response(blob, { headers: { 'Content-Type': type } }));
+  } catch { /* ignore */ }
+  return blob;
+}
+function startImageLoad() {
+  const token = ++S.loadToken;
+  const b = S.board, dir = imgDir(b.id);
+  const queue = [...referencedImages(b)].filter(f => !S.imgs.has(f));
+  S.imgFail = new Set();
+  async function worker() {
+    while (queue.length) {
+      const f = queue.shift();
+      if (token !== S.loadToken) return;
+      const sha = S.repo.files.get(dir + f);
+      if (!sha) { S.imgFail.add(f); onImageReady(f); continue; }
+      try {
+        const blob = await fetchBlobCached(sha, f);
+        if (token !== S.loadToken) return;
+        S.imgs.set(f, { blob, url: URL.createObjectURL(blob) });
+      } catch (e) {
+        S.imgFail.add(f);
+        if (e.limited) { queue.length = 0; toast('GitHub is limiting requests. Some images did not load. Reload in a minute.'); }
+      }
+      onImageReady(f);
+    }
+  }
+  S.imgLoading = Promise.all(Array.from({ length: 6 }, worker));
+  return S.imgLoading;
+}
+function clearImages() {
+  S.loadToken++;
+  for (const v of S.imgs.values()) URL.revokeObjectURL(v.url);
+  S.imgs = new Map(); S.imgFail = new Set();
+}
+const imgUrl = it => (it.img && S.imgs.has(it.img) ? S.imgs.get(it.img).url : it.link || null);
+
+// ---------- UI building blocks ----------
+const btn = (label, kind, onclick, extra) => h('button', { class: 'btn' + (kind ? ' ' + kind : ''), type: 'button', onclick, ...(extra || {}) }, label);
+
+let modalStack = [];
+function modal({ title, body, actions, wide, onClose, dismiss = true }) {
+  const overlay = h('div', { class: 'overlay' });
+  const api = { dismiss, closed: false };
+  const closeBtn = dismiss ? h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: () => api.close() }, icon('x', 18)) : null;
+  const sheet = h('div', { class: 'sheet' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true' },
+    h('div', { class: 'sheet-head' }, h('h2', {}, title || ''), closeBtn),
+    h('div', { class: 'sheet-body' }, body),
+    actions && actions.length ? h('div', { class: 'sheet-actions' }, ...actions) : null);
+  overlay.append(sheet);
+  document.body.append(overlay);
+  api.el = sheet;
+  api.body = sheet.querySelector('.sheet-body');
+  api.setBody = n => api.body.replaceChildren(n);
+  api.close = v => {
+    if (api.closed) return;
+    api.closed = true;
+    modalStack = modalStack.filter(m => m !== api);
+    overlay.classList.add('out');
+    setTimeout(() => overlay.remove(), 160);
+    if (onClose) onClose(v);
+  };
+  overlay.addEventListener('pointerdown', e => { if (dismiss && e.target === overlay) api.close(); });
+  modalStack.push(api);
+  setTimeout(() => { const f = sheet.querySelector('input:not([type=file]):not([type=checkbox]),textarea'); if (f && matchMedia('(hover:hover)').matches) f.focus(); }, 30);
+  return api;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (menuEl) { closeMenu(); return; }
+    const m = modalStack[modalStack.length - 1];
+    if (m && m.dismiss) m.close();
+  }
+});
+
+function confirmBox(message, { title = 'Are you sure?', confirm = 'OK', danger = false } = {}) {
+  return new Promise(res => {
+    let done = false;
+    const m = modal({
+      title, body: h('p', { class: 'msg' }, message),
+      actions: [btn('Cancel', '', () => { done = true; m.close(); res(false); }),
+        btn(confirm, danger ? 'danger solid' : 'primary', () => { done = true; m.close(); res(true); })],
+      onClose: () => { if (!done) res(false); }
+    });
+  });
+}
+function choiceBox({ title, message, choices }) {
+  return new Promise(res => {
+    let done = false;
+    const m = modal({
+      title, body: h('p', { class: 'msg' }, message),
+      actions: choices.map(c => btn(c.label, c.kind || '', () => { done = true; m.close(); res(c.value); })),
+      onClose: () => { if (!done) res(null); }
+    });
+  });
+}
+function promptBox({ title, label, value = '', placeholder = '', multiline = false, confirm = 'OK' }) {
+  return new Promise(res => {
+    let done = false;
+    const input = multiline
+      ? h('textarea', { class: 'field', rows: '5', placeholder, value })
+      : h('input', { class: 'field', type: 'text', placeholder, value });
+    const submit = () => { done = true; m.close(); res(input.value); };
+    if (!multiline) input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    const m = modal({
+      title,
+      body: h('label', { class: 'lbl' }, label ? h('span', {}, label) : null, input),
+      actions: [btn('Cancel', '', () => { done = true; m.close(); res(null); }), btn(confirm, 'primary', submit)],
+      onClose: () => { if (!done) res(null); }
+    });
+  });
+}
+
+// Toasts
+function toast(msg, { action, ms = 3800 } = {}) {
+  const c = $('#toasts');
+  if (!c) return;
+  const t = h('div', { class: 'toast', role: 'status' }, h('span', {}, msg),
+    action ? h('button', { class: 'toast-act', type: 'button', onclick: () => { action.fn(); t.remove(); } }, action.label) : null);
+  c.append(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 200); }, ms);
+}
+
+// Popover menu
+let menuEl = null;
+function closeMenu() {
+  if (menuEl) { menuEl.remove(); menuEl = null; }
+  document.removeEventListener('pointerdown', menuOutside, true);
+}
+function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
+function openMenu(anchor, items) {
+  closeMenu();
+  const m = h('div', { class: 'menu', role: 'menu' }, items.map(it => it.divider
+    ? h('div', { class: 'menu-sep' })
+    : h('button', { class: 'menu-item' + (it.danger ? ' danger' : ''), type: 'button', role: 'menuitem', disabled: !!it.disabled, onclick: () => { closeMenu(); it.onClick(); } }, it.label)));
+  document.body.append(m);
+  const r = anchor.getBoundingClientRect();
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(innerWidth - mw - 8, r.right - mw)) + 'px';
+  m.style.top = (r.bottom + 6 + mh > innerHeight ? Math.max(8, r.top - mh - 6) : r.bottom + 6) + 'px';
+  menuEl = m;
+  setTimeout(() => document.addEventListener('pointerdown', menuOutside, true), 0);
+}
+
+// File picker
+function pickFiles(multiple, accept = 'image/*') {
+  return new Promise(res => {
+    const inp = h('input', { type: 'file', accept, multiple: !!multiple, style: { display: 'none' } });
+    inp.addEventListener('change', () => { res([...inp.files]); inp.remove(); });
+    inp.addEventListener('cancel', () => { res([]); inp.remove(); });
+    document.body.append(inp);
+    inp.click();
+  });
+}
+
+// Segmented control
+function segmented(options, current, onPick, label) {
+  const wrap = h('div', { class: 'seg', role: 'group', 'aria-label': label || '' });
+  for (const [v, text] of options) {
+    wrap.append(h('button', { type: 'button', class: v === current ? 'on' : '', 'data-v': v, onclick: () => onPick(v) }, text));
+  }
+  wrap.set = val => wrap.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === val));
+  return wrap;
+}
+function progressBar() {
+  const fill = h('div', { class: 'bar-fill' });
+  const text = h('div', { class: 'bar-text' });
+  const el = h('div', { class: 'progress' }, h('div', { class: 'bar' }, fill), text);
+  return { el, set: (done, total, label) => { fill.style.width = (total ? (done / total) * 100 : 0) + '%'; text.textContent = `${label || 'Working'} ${done} of ${total}`; } };
+}
+
+// Theme
+function applyTheme() {
+  const t = S.prefs.theme;
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+}
+function setTheme(t) { S.prefs.theme = t; savePrefs(); applyTheme(); }
+function cycleTheme() { setTheme({ auto: 'light', light: 'dark', dark: 'auto' }[S.prefs.theme] || 'auto'); }
+function savePrefs() { lsSet('tl.prefs', S.prefs); }
+
+// ---------- Board view ----------
+const SIZE_MIN = 56, SIZE_MAX = 220;
+const defaultSize = () => (matchMedia('(max-width: 640px)').matches ? 84 : 104);
+const tileSize = () => S.prefs.size || defaultSize();
+
+function tileEl(id) {
+  const it = S.board.items[id];
+  if (!it) return null;
+  const url = imgUrl(it);
+  const showName = S.board.showNames && it.name;
+  const loading = it.img && !S.imgs.has(it.img) && !S.imgFail.has(it.img) && !it.link;
+  const media = h('div', { class: 'tile-media' + (url ? '' : ' ph') });
+  if (url) {
+    const im = h('img', { src: url, alt: it.name || '', draggable: 'false', decoding: 'async', referrerpolicy: 'no-referrer' });
+    im.addEventListener('error', () => { im.remove(); media.classList.add('ph'); media.append(icon('image', 22)); });
+    media.append(im);
+  } else {
+    media.classList.toggle('loading', !!loading);
+    if (!loading) media.append(it.name && !S.board.showNames ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
+  }
+  return h('div', { class: 'tile fit-' + S.board.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item' },
+    media, showName ? h('div', { class: 'tile-name' }, it.name) : null);
+}
+
+function zoneEl(zone, items, cls) {
+  const z = h('div', { class: 'zone ' + (cls || ''), 'data-zone': zone });
+  for (const id of items) { const t = tileEl(id); if (t) z.append(t); }
+  if (!items.length) z.append(h('div', { class: 'zone-empty' }, zone === 'pool' ? 'Add items, then drag them into a tier.' : 'Drop items here'));
+  return z;
+}
+
+function renderBody() {
+  const root = $('#boardBody');
+  if (!root || !S.board) return;
+  const b = S.board;
+  root.style.setProperty('--tile', tileSize() + 'px');
+  const tiers = h('div', { class: 'tiers' });
+  for (const t of b.tiers) {
+    const label = h('button', { class: 'tier-label', type: 'button', style: { background: t.color, color: textOn(t.color) }, 'aria-label': `Edit tier ${t.name || 'unnamed'}`, onclick: () => editTier(t.id) },
+      h('span', {}, t.name || ' '));
+    tiers.append(h('div', { class: 'tier', 'data-tier': t.id }, label, zoneEl(t.id, t.items)));
+  }
+  if (!b.tiers.length) tiers.append(h('div', { class: 'no-tiers' }, 'This board has no tiers yet. Add one to start ranking.'));
+  const poolCount = b.pool.length;
+  const pool = h('section', { class: 'pool-wrap' },
+    h('div', { class: 'pool-head' },
+      h('h3', {}, 'Unranked', h('span', { class: 'count' }, String(poolCount))),
+      h('div', { class: 'pool-actions' },
+        btn('Add tier', 'ghost sm', () => addTier()),
+        btn('Add items', 'primary sm', () => openAddItems()))),
+    zoneEl('pool', b.pool, 'pool'));
+  const scroll = root.scrollTop;
+  root.replaceChildren(tiers, pool);
+  root.scrollTop = scroll;
+  updateUndoButtons();
+}
+function onImageReady(f) {
+  if (!$('#boardBody') || !S.board) return;
+  for (const t of document.querySelectorAll('.tile')) {
+    const it = S.board.items[t.dataset.id];
+    if (it && it.img === f) { const n = tileEl(it.id); if (n) t.replaceWith(n); }
+  }
+}
+
+function syncHeader() {
+  const b = S.board;
+  const t = $('#boardTitle'), d = $('#boardDesc');
+  if (t && document.activeElement !== t) t.value = b.title;
+  if (d && document.activeElement !== d) { d.value = b.description; autoGrow(d); }
+}
+function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+function updateUndoButtons() {
+  const u = $('#undoBtn'), r = $('#redoBtn');
+  if (u) u.disabled = !S.hist.past.length;
+  if (r) r.disabled = !S.hist.future.length;
+}
+
+// ---------- Save status ----------
+function renderStatus() {
+  const el = $('#saveStatus'), sb = $('#saveBtn');
+  if (!el) return;
+  // Long text for wide screens, a short label for phones.
+  let cls = 'ok', text = 'Saved', short = 'Saved';
+  if (S.conflict) { cls = 'err'; text = 'Changed elsewhere'; short = 'Conflict'; }
+  else if (S.saving) { cls = 'busy'; text = S.progress && S.progress.total > 1 ? `Saving ${S.progress.done}/${S.progress.total}` : 'Saving'; short = 'Saving'; }
+  else if (S.err) { cls = 'err'; text = 'Couldn’t save'; short = 'Error'; }
+  else if (S.dirty) { cls = 'warn'; text = 'Unsaved changes'; short = 'Unsaved'; }
+  el.className = 'status ' + cls;
+  el.replaceChildren(h('i', { class: 'dot' }), h('span', { class: 'long' }, text), h('span', { class: 'short' }, short));
+  el.title = S.err ? friendlyError(S.err) : (S.savedAt ? 'Last saved ' + S.savedAt.toLocaleTimeString() : '');
+  el.onclick = S.conflict ? showConflict : (S.err ? () => saveNow(true) : null);
+  el.style.cursor = el.onclick ? 'pointer' : 'default';
+  if (sb) sb.disabled = S.saving || (!S.dirty && !S.err && !S.conflict);
+}
+function renderTopbar() { renderStatus(); updateUndoButtons(); }
+
+// ---------- Board screen ----------
+async function openBoard(id) {
+  closeMenu();
+  const token = ++S.loadToken;
+  renderLoading('Opening board…');
+  try {
+    await refreshRepo();
+    const f = await getFile(boardPath(id));
+    if (!f) { toast('That board was not found.'); location.hash = ''; return; }
+    if (token !== S.loadToken && S.board) return;
+    clearImages();
+    S.board = parseBoard(f.text);
+    S.board.id = id;
+    S.boardSha = f.sha;
+    S.lastSavedJson = ser(S.board);
+    S.hist = { past: [], future: [] };
+    S.dirty = false; S.err = null; S.conflict = null; S.savedAt = new Date(); S.lastSaveEnd = Date.now(); S.indexStale = false;
+    renderBoardScreen();
+    startImageLoad();
+  } catch (e) {
+    renderFatal(e);
+  }
+}
+
+function renderBoardScreen() {
+  const b = S.board;
+  const title = h('input', { id: 'boardTitle', class: 'title-input', type: 'text', value: b.title, placeholder: 'Untitled tier list', maxlength: '120', 'aria-label': 'Board title' });
+  title.addEventListener('input', () => { const v = title.value; mutateText(x => { x.title = v; }, 'title'); });
+  const desc = h('textarea', { id: 'boardDesc', class: 'desc-input', rows: '1', placeholder: 'Add a description', maxlength: '600', 'aria-label': 'Board description' });
+  desc.value = b.description;
+  desc.addEventListener('input', () => { autoGrow(desc); const v = desc.value; mutateText(x => { x.description = v; }, 'desc'); });
+
+  const slider = h('input', { type: 'range', min: String(SIZE_MIN), max: String(SIZE_MAX), step: '2', value: String(tileSize()), 'aria-label': 'Item size', id: 'sizeSlider' });
+  slider.addEventListener('input', () => { S.prefs.size = Number(slider.value); savePrefs(); $('#boardBody').style.setProperty('--tile', slider.value + 'px'); });
+
+  const top = h('header', { class: 'topbar' },
+    h('div', { class: 'topbar-in' },
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'All boards', onclick: () => leaveBoard() }, icon('back')),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'icon-btn', id: 'undoBtn', type: 'button', 'aria-label': 'Undo', title: 'Undo', onclick: doUndo }, icon('undo')),
+      h('button', { class: 'icon-btn', id: 'redoBtn', type: 'button', 'aria-label': 'Redo', title: 'Redo', onclick: doRedo }, icon('redo')),
+      h('div', { id: 'saveStatus', class: 'status ok', role: 'status', 'aria-live': 'polite' }),
+      h('button', { class: 'btn primary sm', id: 'saveBtn', type: 'button', onclick: () => saveNow(true) }, 'Save'),
+      themeButton(),
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Board options', onclick: e => boardMenu(e.currentTarget) }, icon('more'))));
+
+  const controls = h('div', { class: 'controls' },
+    h('label', { class: 'size-ctl' }, h('span', {}, 'Size'), slider),
+    h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: b.showNames, onchange: e => { const v = e.target.checked; mutate(x => { x.showNames = v; }); } }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
+    segmented([['fill', 'Fill'], ['fit', 'Fit']], b.fit, v => mutate(x => { x.fit = v; }), 'Image fit'));
+
+  const app = $('#app');
+  app.replaceChildren(top,
+    h('main', { class: 'board-main' },
+      h('div', { class: 'board-head' }, title, desc, controls),
+      h('div', { id: 'boardBody', class: 'board-body' })));
+  autoGrow(desc);
+  renderBody();
+  renderTopbar();
+  initDnD();
+}
+
+// Text edits merge into one undo step per burst of typing.
+let lastTextKey = '', lastTextAt = 0;
+function mutateText(fn, key) {
+  const before = ser(S.board);
+  fn(S.board);
+  if (ser(S.board) === before) return;
+  const now = Date.now();
+  if (!(key === lastTextKey && now - lastTextAt < 1200)) {
+    S.hist.past.push(before);
+    if (S.hist.past.length > 100) S.hist.past.shift();
+  }
+  lastTextKey = key; lastTextAt = now;
+  S.hist.future = [];
+  S.lastChange = now;
+  recomputeDirty();
+  renderTopbar();
+}
+
+async function leaveBoard() {
+  if (S.board && S.dirty && !S.conflict) {
+    const ok = await saveNow(true);
+    if (!ok && S.dirty) {
+      const go = await confirmBox('Your latest changes are not saved yet. Leave anyway?', { title: 'Unsaved changes', confirm: 'Leave', danger: true });
+      if (!go) return;
+    }
+  }
+  location.hash = '';
+}
+
+function boardMenu(anchor) {
+  openMenu(anchor, [
+    { label: 'Rename board…', onClick: async () => { const v = await promptBox({ title: 'Rename board', value: S.board.title, confirm: 'Rename' }); if (v != null) { mutate(b => { b.title = v.trim(); }); syncHeader(); } } },
+    { label: 'Add items…', onClick: openAddItems },
+    { label: 'Add tier', onClick: () => addTier() },
+    { divider: true },
+    { label: 'Export board…', onClick: exportBoard },
+    { label: 'Import into this board…', onClick: () => importFlow(false) },
+    { divider: true },
+    { label: 'Reset placements…', onClick: resetPlacements },
+    { label: 'Delete board…', danger: true, onClick: () => deleteBoard(S.board.id, true) }
+  ]);
+}
+function themeButton() {
+  const map = { auto: ['auto', 'Theme: automatic'], light: ['sun', 'Theme: light'], dark: ['moon', 'Theme: dark'] };
+  const [ic, label] = map[S.prefs.theme] || map.auto;
+  const b = h('button', { class: 'icon-btn', type: 'button', title: label, 'aria-label': label, onclick: () => { cycleTheme(); b.replaceWith(themeButton()); } }, icon(ic));
+  return b;
+}
+
+async function resetPlacements() {
+  const n = S.board.tiers.reduce((a, t) => a + t.items.length, 0);
+  if (!n) { toast('No items are placed in tiers.'); return; }
+  const ok = await confirmBox(`This moves ${n} placed ${n === 1 ? 'item' : 'items'} back to Unranked. Items, names, and images stay. You can undo this.`, { title: 'Reset placements?', confirm: 'Reset', danger: true });
+  if (!ok) return;
+  mutate(b => { for (const t of b.tiers) { b.pool.push(...t.items); t.items = []; } });
+}
+
+// ---------- Tiers ----------
+function addTier() {
+  const used = new Set(S.board.tiers.map(t => t.color));
+  const color = PALETTE.find(c => !used.has(c)) || PALETTE[S.board.tiers.length % PALETTE.length];
+  let id;
+  mutate(b => { id = uid(); b.tiers.push({ id, name: 'New', color, items: [] }); });
+  editTier(id);
+}
+function editTier(tierId) {
+  const t0 = S.board.tiers.find(t => t.id === tierId);
+  if (!t0) return;
+  let color = t0.color;
+  const name = h('input', { class: 'field', type: 'text', value: t0.name, placeholder: 'Tier name', maxlength: '40' });
+  const hex = h('input', { class: 'field hex', type: 'text', value: color, maxlength: '7', 'aria-label': 'Hex color' });
+  const picker = h('input', { type: 'color', class: 'color-input', value: color, 'aria-label': 'Pick a color' });
+  const preview = h('div', { class: 'tier-prev' }, h('span', {}, ''));
+  const sw = h('div', { class: 'swatches' });
+  const paint = () => {
+    preview.style.background = color; preview.style.color = textOn(color);
+    preview.firstChild.textContent = name.value || ' ';
+    picker.value = color;
+    if (document.activeElement !== hex) hex.value = color;
+    sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === color));
+  };
+  for (const c of PALETTE) sw.append(h('button', { type: 'button', class: 'swatch', 'data-c': c, style: { background: c }, 'aria-label': c, onclick: () => { color = c; paint(); } }));
+  name.addEventListener('input', paint);
+  picker.addEventListener('input', () => { color = picker.value; paint(); });
+  hex.addEventListener('input', () => { const n = normHex(hex.value); if (n) { color = n; paint(); } });
+  hex.addEventListener('blur', () => { hex.value = color; });
+  paint();
+
+  const idx = S.board.tiers.findIndex(t => t.id === tierId);
+  const m = modal({
+    title: 'Edit tier',
+    body: h('div', { class: 'stack' },
+      preview,
+      h('label', { class: 'lbl' }, h('span', {}, 'Name'), name),
+      h('div', { class: 'lbl' }, h('span', {}, 'Color'), sw,
+        h('div', { class: 'row' }, picker, hex)),
+      h('div', { class: 'row between' },
+        h('div', { class: 'row' },
+          btn('Move up', 'ghost sm', () => moveTier(tierId, -1, m), { disabled: idx <= 0 }),
+          btn('Move down', 'ghost sm', () => moveTier(tierId, 1, m), { disabled: idx >= S.board.tiers.length - 1 })),
+        btn('Delete tier', 'danger sm', async () => {
+          const t = S.board.tiers.find(x => x.id === tierId);
+          const msg = t.items.length ? `The ${t.items.length} ${t.items.length === 1 ? 'item' : 'items'} in this tier will move to Unranked.` : 'This tier is empty.';
+          if (await confirmBox(msg, { title: `Delete tier “${t.name}”?`, confirm: 'Delete', danger: true })) {
+            m.close();
+            mutate(b => { const i = b.tiers.findIndex(x => x.id === tierId); if (i >= 0) { b.pool.push(...b.tiers[i].items); b.tiers.splice(i, 1); } });
+          }
+        }))),
+    actions: [btn('Cancel', '', () => m.close()), btn('Done', 'primary', () => {
+      m.close();
+      mutate(b => { const t = b.tiers.find(x => x.id === tierId); if (t) { t.name = name.value.trim(); t.color = color; } });
+    })]
+  });
+}
+function moveTier(tierId, dir, m) {
+  mutate(b => {
+    const i = b.tiers.findIndex(t => t.id === tierId), j = i + dir;
+    if (i < 0 || j < 0 || j >= b.tiers.length) return;
+    [b.tiers[i], b.tiers[j]] = [b.tiers[j], b.tiers[i]];
+  });
+  m.close();
+  editTier(tierId);
+}
+
+// ---------- Drag and drop (pointer events: mouse, touch, pen) ----------
+// Mouse: drag after moving a few pixels. Touch and pen: press and hold briefly, so normal scrolling still works.
+let drag = null, dndBound = false, suppressClickUntil = 0, rafId = 0, dropLine = null;
+const HOLD_MS = 260, MOUSE_SLOP = 5, TOUCH_SLOP = 9;
+
+function initDnD() {
+  const body = $('#boardBody');
+  body.addEventListener('pointerdown', onDown);
+  body.addEventListener('click', onTileClick);
+  body.addEventListener('keydown', onTileKey);
+  body.addEventListener('contextmenu', e => { if (e.target.closest('.tile')) e.preventDefault(); });
+  body.addEventListener('dragstart', e => e.preventDefault());
+  if (dndBound) return;
+  dndBound = true;
+  document.addEventListener('pointermove', onMove, { passive: false });
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', () => cancelDrag());
+  // Once a drag is active, stop the page from scrolling under the finger.
+  document.addEventListener('touchmove', e => { if (drag && drag.active) e.preventDefault(); }, { passive: false });
+  window.addEventListener('blur', () => cancelDrag());
+}
+
+function onTileClick(e) {
+  if (Date.now() < suppressClickUntil) return;
+  const t = e.target.closest('.tile');
+  if (t) editItem(t.dataset.id);
+}
+function onTileKey(e) {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('tile')) {
+    e.preventDefault();
+    editItem(e.target.dataset.id);
+  }
+}
+
+function onDown(e) {
+  if (drag) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const tile = e.target.closest('.tile');
+  if (!tile || !S.board) return;
+  drag = { id: tile.dataset.id, pointerId: e.pointerId, type: e.pointerType, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, active: false, tile, timer: 0, target: null };
+  if (e.pointerType !== 'mouse') drag.timer = setTimeout(() => { if (drag && !drag.active) startDrag(); }, HOLD_MS);
+}
+
+function onMove(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (!drag.active) {
+    const d = Math.hypot(drag.x - drag.sx, drag.y - drag.sy);
+    if (drag.type === 'mouse') { if (d > MOUSE_SLOP) startDrag(); }
+    else if (d > TOUCH_SLOP) { clearTimeout(drag.timer); drag = null; } // the person is scrolling
+    return;
+  }
+  e.preventDefault();
+  positionGhost();
+  updateTarget();
+}
+
+function startDrag() {
+  if (!drag || drag.active) return;
+  closeMenu();
+  const r = drag.tile.getBoundingClientRect();
+  drag.active = true;
+  drag.offX = drag.sx - r.left; drag.offY = drag.sy - r.top;
+  const g = drag.tile.cloneNode(true);
+  g.removeAttribute('tabindex');
+  g.classList.add('ghost');
+  g.style.width = r.width + 'px';
+  g.style.height = r.height + 'px';
+  document.body.append(g);
+  drag.ghost = g;
+  drag.tile.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* ignore */ } }
+  positionGhost();
+  updateTarget();
+  rafId = requestAnimationFrame(scrollLoop);
+}
+function positionGhost() {
+  const lift = drag.type === 'mouse' ? 0 : 18;
+  drag.ghost.style.transform = `translate(${drag.x - drag.offX}px, ${drag.y - drag.offY - lift}px) scale(1.07)`;
+}
+
+function computeTarget(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  let zoneEl = el.closest('.zone');
+  if (!zoneEl) {
+    const row = el.closest('.tier');
+    if (row) zoneEl = row.querySelector('.zone');
+  }
+  if (!zoneEl) return null;
+  const tiles = [...zoneEl.querySelectorAll('.tile')].filter(t => t.dataset.id !== drag.id);
+  let idx = tiles.length;
+  for (let i = 0; i < tiles.length; i++) {
+    const r = tiles[i].getBoundingClientRect();
+    if (y < r.top || (y <= r.bottom && x < r.left + r.width / 2)) { idx = i; break; }
+  }
+  return { zone: zoneEl.dataset.zone, idx, zoneEl, tiles };
+}
+
+function updateTarget() {
+  const t = computeTarget(drag.x, drag.y);
+  document.querySelectorAll('.zone.drop-over').forEach(z => { if (!t || z !== t.zoneEl) z.classList.remove('drop-over'); });
+  drag.target = t;
+  if (!t) { hideLine(); return; }
+  t.zoneEl.classList.add('drop-over');
+  // Place the insertion line at the gap where the item will land.
+  const zr = t.zoneEl.getBoundingClientRect();
+  const gap = 3;
+  let x, top, height;
+  const next = t.tiles[t.idx], prev = t.tiles[t.idx - 1];
+  if (!t.tiles.length) {
+    x = zr.left + 10; top = zr.top + 8; height = Math.max(24, zr.height - 16);
+  } else if (next) {
+    const nr = next.getBoundingClientRect();
+    const pr = prev ? prev.getBoundingClientRect() : null;
+    const sameRowAsPrev = pr && drag.y >= pr.top && drag.y <= pr.bottom && Math.abs(pr.top - nr.top) > 2;
+    if (sameRowAsPrev) { x = pr.right + gap; top = pr.top; height = pr.height; }
+    else { x = nr.left - gap; top = nr.top; height = nr.height; }
+  } else {
+    const lr = prev.getBoundingClientRect();
+    x = lr.right + gap; top = lr.top; height = lr.height;
+  }
+  showLine(x, top, height);
+}
+function showLine(x, top, height) {
+  if (!dropLine) { dropLine = h('div', { class: 'drop-line', 'aria-hidden': 'true' }); document.body.append(dropLine); }
+  dropLine.style.transform = `translate(${Math.round(x - 2)}px, ${Math.round(top)}px)`;
+  dropLine.style.height = Math.round(height) + 'px';
+  dropLine.style.display = 'block';
+}
+function hideLine() { if (dropLine) dropLine.style.display = 'none'; }
+
+function scrollLoop() {
+  if (!drag || !drag.active) return;
+  const edge = 80, y = drag.y;
+  let dy = 0;
+  if (y < edge + 40) dy = -Math.ceil(((edge + 40 - y) / edge) * 14);
+  else if (y > innerHeight - edge) dy = Math.ceil(((y - (innerHeight - edge)) / edge) * 14);
+  if (dy) { window.scrollBy(0, dy); updateTarget(); }
+  rafId = requestAnimationFrame(scrollLoop);
+}
+
+function endDrag() {
+  cancelAnimationFrame(rafId);
+  if (drag) {
+    clearTimeout(drag.timer);
+    if (drag.ghost) drag.ghost.remove();
+    if (drag.tile) drag.tile.classList.remove('dragging');
+  }
+  document.body.classList.remove('is-dragging');
+  document.querySelectorAll('.zone.drop-over').forEach(z => z.classList.remove('drop-over'));
+  hideLine();
+}
+function cancelDrag() {
+  if (!drag) return;
+  const was = drag.active;
+  endDrag();
+  drag = null;
+  if (was) suppressClickUntil = Date.now() + 350;
+}
+function onUp(e) {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  if (!drag.active) { clearTimeout(drag.timer); drag = null; return; }
+  const { id, target } = drag;
+  endDrag();
+  drag = null;
+  suppressClickUntil = Date.now() + 350;
+  if (!target || !S.board || !S.board.items[id]) return;
+  mutate(b => {
+    const dest = zoneList(b, target.zone);
+    if (!dest) return;
+    removeFromAll(b, id);
+    const list = zoneList(b, target.zone);
+    list.splice(Math.min(target.idx, list.length), 0, id);
+  });
+}
+
+// ---------- Items: edit sheet, viewer, adding ----------
+const imgErrorText = e => (e && e.message) || 'The image could not be read.';
+
+// Resolve an image from a URL. Falls back to keeping a link when the site blocks copying.
+// Returns { img } (stored file) or { link } (kept link), or null if the person cancelled or it failed.
+async function imageFromUrl(raw) {
+  let u = String(raw || '').trim();
+  if (!/^https?:\/\//i.test(u)) { toast('Enter a full web address that starts with https://'); return null; }
+  let fetched;
+  try {
+    fetched = await fetchFromUrl(u);
+  } catch (e) {
+    if (e.code === 'blocked') {
+      const c = await choiceBox({
+        title: 'This site blocks copying',
+        message: 'The image can’t be saved to your board because the site doesn’t allow it. You can keep a link instead, but it stops working if the site removes the image. To store it permanently, download the image and upload the file.',
+        choices: [{ label: 'Cancel', value: 'no' }, { label: 'Keep a link', kind: 'primary', value: 'link' }]
+      });
+      return c === 'link' ? { link: u.replace(/^http:\/\//i, 'https://') } : null;
+    }
+    toast(imgErrorText(e) + (e.code === 'big' ? ' Download it, then upload the file.' : ''));
+    return null;
+  }
+  try {
+    const out = await processImage(fetched.blob);
+    return { img: registerImage(out) };
+  } catch (e) {
+    toast(imgErrorText(e));
+    return null;
+  }
+}
+async function imageFromFile(file) {
+  if (file.size > MAX_FILE) throw new Error(`${file.name} is larger than 50 MB.`);
+  const out = await processImage(file);
+  return registerImage(out);
+}
+
+// ---- Edit sheet ----
+function editItem(id) {
+  const orig = S.board.items[id];
+  if (!orig) return;
+  const st = { img: orig.img, link: orig.link };
+  let zone = findZone(S.board, id);
+  const preview = h('button', { class: 'item-prev', type: 'button', 'aria-label': 'Enlarge image' });
+  const name = h('input', { class: 'field', type: 'text', value: orig.name, placeholder: 'Name (optional if there is an image)', maxlength: '120' });
+  const err = h('p', { class: 'form-err', role: 'alert' });
+  const removeImg = btn('Remove image', 'ghost sm', () => { st.img = null; st.link = null; paint(); });
+  const zoneSel = h('select', { class: 'field', 'aria-label': 'Move to' },
+    ...S.board.tiers.map(t => h('option', { value: t.id, selected: t.id === zone }, t.name || '(unnamed tier)')),
+    h('option', { value: 'pool', selected: zone === 'pool' }, 'Unranked'));
+  zoneSel.addEventListener('change', () => { zone = zoneSel.value; });
+
+  const curUrl = () => (st.img && S.imgs.has(st.img) ? S.imgs.get(st.img).url : st.link || null);
+  function paint() {
+    const u = curUrl();
+    preview.className = 'item-prev' + (u ? '' : ' ph');
+    preview.replaceChildren(u ? h('img', { src: u, alt: '', referrerpolicy: 'no-referrer' }) : icon('image', 36));
+    preview.disabled = !u;
+    removeImg.style.display = (st.img || st.link) ? '' : 'none';
+    removeImg.disabled = !name.value.trim();
+    removeImg.title = name.value.trim() ? '' : 'An item needs a name or an image';
+    err.textContent = '';
+  }
+  name.addEventListener('input', paint);
+  preview.addEventListener('click', () => { if (curUrl()) openViewer(id, { url: curUrl(), name: name.value }); });
+
+  const uploadBtn = btn('Upload image…', 'sm', async () => {
+    const [f] = await pickFiles(false);
+    if (!f) return;
+    try { st.img = await imageFromFile(f); st.link = null; paint(); } catch (e) { toast(imgErrorText(e)); }
+  });
+  const urlBtn = btn('From URL…', 'sm', async () => {
+    const v = await promptBox({ title: 'Image URL', placeholder: 'https://example.com/image.jpg', confirm: 'Use image' });
+    if (!v) return;
+    const r = await imageFromUrl(v);
+    if (r) { st.img = r.img || null; st.link = r.link || null; paint(); }
+  });
+
+  const save = () => {
+    const nm = name.value.trim();
+    if (!nm && !st.img && !st.link) { err.textContent = 'An item needs a name or an image.'; return; }
+    m.close();
+    mutate(b => {
+      const it = b.items[id];
+      if (!it) return;
+      it.name = nm; it.img = st.img || null; it.link = st.img ? null : (st.link || null);
+      if (zone !== findZone(b, id) && zoneList(b, zone)) { removeFromAll(b, id); zoneList(b, zone).push(id); }
+    });
+  };
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+
+  const m = modal({
+    title: 'Edit item',
+    body: h('div', { class: 'stack' },
+      preview,
+      h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, removeImg),
+      h('label', { class: 'lbl' }, h('span', {}, 'Name'), name),
+      h('label', { class: 'lbl' }, h('span', {}, 'Tier'), zoneSel),
+      err),
+    actions: [
+      btn('Delete', 'danger', async () => {
+        if (await confirmBox('This removes the item from the board. You can undo this.', { title: 'Delete item?', confirm: 'Delete', danger: true })) {
+          m.close();
+          mutate(b => { removeFromAll(b, id); delete b.items[id]; });
+        }
+      }),
+      h('div', { class: 'grow' }),
+      btn('Cancel', '', () => m.close()),
+      btn('Save', 'primary', save)]
+  });
+  paint();
+}
+
+// ---- Full-size viewer ----
+function openViewer(startId, override) {
+  const order = displayOrder(S.board).filter(id => S.board.items[id] && imgUrl(S.board.items[id]));
+  let i = Math.max(0, order.indexOf(startId));
+  const im = h('img', { class: 'viewer-img', alt: '', referrerpolicy: 'no-referrer' });
+  const cap = h('div', { class: 'viewer-cap' });
+  const prev = h('button', { class: 'viewer-nav left', type: 'button', 'aria-label': 'Previous', onclick: e => { e.stopPropagation(); go(-1); } }, icon('left', 26));
+  const next = h('button', { class: 'viewer-nav right', type: 'button', 'aria-label': 'Next', onclick: e => { e.stopPropagation(); go(1); } }, icon('right', 26));
+  const close = h('button', { class: 'viewer-close', type: 'button', 'aria-label': 'Close', onclick: () => end() }, icon('x', 22));
+  const root = h('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true' }, close, prev, next, im, cap);
+  function show() {
+    if (override) { im.src = override.url; cap.textContent = override.name || ''; prev.style.display = next.style.display = 'none'; return; }
+    const it = S.board.items[order[i]];
+    im.src = imgUrl(it) || ''; cap.textContent = it.name || '';
+    prev.style.display = next.style.display = order.length > 1 ? '' : 'none';
+  }
+  function go(d) { if (!order.length) return; i = (i + d + order.length) % order.length; show(); }
+  function key(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); end(); }
+    else if (e.key === 'ArrowLeft' && !override) go(-1);
+    else if (e.key === 'ArrowRight' && !override) go(1);
+  }
+  function end() { document.removeEventListener('keydown', key, true); root.remove(); }
+  root.addEventListener('click', e => { if (e.target === root || e.target === im) end(); });
+  document.addEventListener('keydown', key, true);
+  document.body.append(root);
+  show();
+}
+
+// ---- Adding items ----
+function openAddItems() {
+  const useNames = h('input', { type: 'checkbox', checked: true });
+  const names = h('textarea', { class: 'field', rows: '5', placeholder: 'One item per line' });
+  const urlIn = h('input', { class: 'field', type: 'text', placeholder: 'https://example.com/image.jpg', inputmode: 'url' });
+  const urlName = h('input', { class: 'field', type: 'text', placeholder: 'Name (optional)', maxlength: '120' });
+  const m = modal({
+    title: 'Add items', wide: true,
+    body: h('div', { class: 'stack lg' },
+      h('section', { class: 'stack' },
+        h('h3', { class: 'sub' }, 'Images'),
+        h('p', { class: 'hint' }, 'Pick many at once, or drop files anywhere on the page.'),
+        h('div', { class: 'row wrap center' },
+          btn('Choose images…', 'primary', async () => {
+            const files = await pickFiles(true);
+            if (files.length) { m.close(); handleFiles(files, useNames.checked); }
+          }),
+          h('label', { class: 'check' }, useNames, h('span', {}, 'Use file names as item names')))),
+      h('section', { class: 'stack' },
+        h('h3', { class: 'sub' }, 'Names'),
+        h('p', { class: 'hint' }, 'Paste a list. Each line becomes an item without an image.'),
+        names,
+        h('div', { class: 'row' }, btn('Add names', '', async () => { const ok = await addNames(names.value); if (ok) m.close(); }))),
+      h('section', { class: 'stack' },
+        h('h3', { class: 'sub' }, 'Image URL'),
+        urlIn, urlName,
+        h('div', { class: 'row' }, btn('Add from URL', '', async () => {
+          const r = await imageFromUrl(urlIn.value);
+          if (!r) return;
+          const id = uid();
+          mutate(b => { b.items[id] = { id, name: urlName.value.trim(), img: r.img || null, link: r.link || null }; b.pool.push(id); });
+          m.close();
+        })))),
+    actions: [btn('Done', 'primary', () => m.close())]
+  });
+}
+
+async function addNames(text) {
+  const lines = String(text).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length) { toast('Paste at least one name.'); return false; }
+  const have = new Set(Object.values(S.board.items).map(it => norm(it.name)).filter(Boolean));
+  // A line counts as a duplicate if the board already has that name, or an earlier line repeated it.
+  const seen = new Set(have);
+  const dupFlags = lines.map(l => { const k = norm(l); if (seen.has(k)) return true; seen.add(k); return false; });
+  const dups = dupFlags.filter(Boolean).length;
+  let list = lines;
+  if (dups) {
+    const choice = await choiceBox({
+      title: 'Some names already exist',
+      message: `${dups} of ${lines.length} ${lines.length === 1 ? 'name is' : 'names are'} already on this board or repeated in your list.`,
+      choices: [{ label: 'Cancel', value: 'cancel' }, { label: 'Add anyway', value: 'all' }, { label: 'Skip duplicates', kind: 'primary', value: 'skip' }]
+    });
+    if (!choice || choice === 'cancel') return false;
+    if (choice === 'skip') list = lines.filter((_, i) => !dupFlags[i]);
+  }
+  if (!list.length) { toast('Nothing new to add.'); return true; }
+  mutate(b => { for (const n of list) { const id = uid(); b.items[id] = { id, name: n, img: null, link: null }; b.pool.push(id); } });
+  toast(`Added ${list.length} ${list.length === 1 ? 'item' : 'items'}`);
+  return true;
+}
+
+async function handleFiles(files, useNames = true) {
+  const imgs = files.filter(isImageFile);
+  if (!imgs.length) { toast('Those files are not images.'); return; }
+  imgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const pb = progressBar();
+  const m = modal({ title: 'Adding images', body: pb.el, dismiss: false });
+  const added = [], failed = [];
+  let done = 0, next = 0;
+  pb.set(0, imgs.length, 'Processed');
+  async function worker() {
+    while (next < imgs.length) {
+      const k = next++;
+      const f = imgs[k];
+      try {
+        const file = await imageFromFile(f);
+        added[k] = { id: uid(), name: useNames ? nameFromFile(f) : '', img: file, link: null };
+      } catch (e) {
+        failed.push(`${f.name}: ${imgErrorText(e)}`);
+      }
+      pb.set(++done, imgs.length, 'Processed');
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  m.close();
+  const ok = added.filter(Boolean);
+  if (ok.length) mutate(b => { for (const it of ok) { b.items[it.id] = it; b.pool.push(it.id); } });
+  if (failed.length) {
+    modal({
+      title: `${failed.length} ${failed.length === 1 ? 'image' : 'images'} skipped`,
+      body: h('div', { class: 'stack' }, h('p', { class: 'msg' }, ok.length ? `${ok.length} added.` : 'None were added.'), h('ul', { class: 'fail-list' }, failed.slice(0, 12).map(t => h('li', {}, t)), failed.length > 12 ? h('li', {}, `and ${failed.length - 12} more`) : null)),
+      actions: [btn('OK', 'primary', function () { this.closest('.overlay').querySelector('.icon-btn').click(); })]
+    });
+  } else if (ok.length) toast(`Added ${ok.length} ${ok.length === 1 ? 'image' : 'images'}`);
+}
+
+// Drop image files anywhere on a board.
+function bindFileDrop() {
+  let depth = 0;
+  const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+  window.addEventListener('dragenter', e => { if (S.board && hasFiles(e)) { depth++; document.body.classList.add('file-over'); } });
+  window.addEventListener('dragleave', e => { if (S.board && hasFiles(e) && --depth <= 0) { depth = 0; document.body.classList.remove('file-over'); } });
+  window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', e => {
+    depth = 0; document.body.classList.remove('file-over');
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    if (S.board && !modalStack.length) handleFiles([...e.dataTransfer.files], true);
+  });
+}
+
+// ---------- Export and import ----------
+function download(text, filename) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = h('a', { href: url, download: filename, style: { display: 'none' } });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function exportBoard() {
+  const b = S.board;
+  const pb = progressBar();
+  const m = modal({ title: 'Preparing export', body: pb.el, dismiss: false });
+  try {
+    await S.imgLoading;
+    const ids = Object.keys(b.items);
+    const items = {};
+    let missing = 0, n = 0;
+    for (const id of ids) {
+      const it = b.items[id];
+      let image = null;
+      if (it.img) {
+        const rec = S.imgs.get(it.img);
+        if (rec) image = await blobToDataURL(rec.blob); else missing++;
+      }
+      items[id] = { name: it.name, image, link: it.link || null };
+      pb.set(++n, ids.length, 'Packed');
+    }
+    const data = {
+      app: 'tierlist', version: 1, exportedAt: new Date().toISOString(),
+      board: {
+        title: b.title, description: b.description, showNames: b.showNames, fit: b.fit,
+        tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
+        pool: b.pool, items
+      }
+    };
+    download(JSON.stringify(data), `${slug(b.title)}.tierlist.json`);
+    m.close();
+    toast(missing ? `Exported. ${missing} ${missing === 1 ? 'image was' : 'images were'} not loaded and left out.` : 'Export downloaded');
+  } catch (e) {
+    m.close();
+    toast('Export failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+function parseExport(text) {
+  let o;
+  try { o = JSON.parse(text); } catch { throw new Error('This file is not a valid tier list export.'); }
+  const bd = o && o.app === 'tierlist' && o.board;
+  if (!bd || typeof bd.items !== 'object' || !bd.items) throw new Error('This file is not a tier list export.');
+  const items = {};
+  for (const [k, v] of Object.entries(bd.items)) {
+    if (!v || typeof v !== 'object') continue;
+    items[k] = {
+      name: String(v.name || '').slice(0, 120),
+      image: typeof v.image === 'string' && /^data:image\//.test(v.image) ? v.image : null,
+      link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null
+    };
+  }
+  const used = new Set();
+  const take = list => (Array.isArray(list) ? list : []).filter(id => items[id] && !used.has(id) && used.add(id));
+  const tiers = (Array.isArray(bd.tiers) ? bd.tiers : []).map(t => ({ name: String((t && t.name) ?? '').slice(0, 40), color: normHex(t && t.color) || '#8e8e93', items: take(t && t.items) }));
+  const pool = take(bd.pool);
+  for (const id of Object.keys(items)) if (!used.has(id)) pool.push(id);
+  return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), showNames: bd.showNames !== false, fit: bd.fit === 'fit' ? 'fit' : 'fill', tiers, pool, items };
+}
+
+async function importedImage(it) {
+  if (!it.image) return null;
+  const blob = dataURLToBlob(it.image);
+  if (!blob) return null;
+  try { return registerImage(await processImage(blob)); } catch { return null; }
+}
+
+async function importFlow(asNew) {
+  const [file] = await pickFiles(false, '.json,application/json');
+  if (!file) return;
+  if (file.size > 150 * 1024 * 1024) { toast('That file is too large.'); return; }
+  let data;
+  try { data = parseExport(await file.text()); } catch (e) { toast(e.message); return; }
+  if (asNew) await importAsNew(data, file.name.replace(/\.tierlist\.json$|\.json$/i, ''));
+  else await importInto(data);
+}
+
+async function importAsNew(data, fallbackTitle) {
+  const pb = progressBar();
+  const m = modal({ title: 'Importing board', body: pb.el, dismiss: false });
+  try {
+    const b = newBoard(data.title || fallbackTitle || 'Imported board', data.description);
+    b.showNames = data.showNames; b.fit = data.fit;
+    b.tiers = []; b.pool = []; b.items = {};
+    const idMap = {};
+    const ids = Object.keys(data.items);
+    let n = 0;
+    for (const old of ids) {
+      const src = data.items[old];
+      const img = await importedImage(src);
+      pb.set(++n, ids.length, 'Processed');
+      if (!src.name && !img && !src.link) continue;
+      const id = uid(); idMap[old] = id;
+      b.items[id] = { id, name: src.name, img, link: img ? null : src.link };
+    }
+    for (const t of data.tiers) b.tiers.push({ id: uid(), name: t.name, color: t.color, items: t.items.map(i => idMap[i]).filter(Boolean) });
+    b.pool = data.pool.map(i => idMap[i]).filter(Boolean);
+    pb.set(ids.length, ids.length, 'Uploading');
+    await createBoardRemote(b);
+    m.close();
+    location.hash = '#/b/' + b.id;
+  } catch (e) {
+    m.close();
+    toast('Import failed: ' + friendlyError(e));
+  }
+}
+
+async function importInto(data) {
+  const b = S.board;
+  // Match by name, ignoring case and extra spaces. Each existing item matches at most once.
+  const byName = new Map();
+  for (const it of Object.values(b.items)) {
+    const k = norm(it.name);
+    if (k) { if (!byName.has(k)) byName.set(k, []); byName.get(k).push(it.id); }
+  }
+  const taken = new Set(), matchOf = {};
+  for (const [iid, it] of Object.entries(data.items)) {
+    const k = norm(it.name);
+    const ex = k && (byName.get(k) || []).find(x => !taken.has(x));
+    if (ex) { matchOf[iid] = ex; taken.add(ex); }
+  }
+  const nMatch = Object.keys(matchOf).length;
+  let overwrite = true;
+  if (nMatch) {
+    const c = await choiceBox({
+      title: 'Some items already exist',
+      message: `${nMatch} of ${Object.keys(data.items).length} items have the same name as an item on this board (upper and lower case are ignored). Overwriting replaces the image, name, and position of each match.`,
+      choices: [{ label: 'Cancel', value: 'cancel' }, { label: 'Skip matches', value: 'skip' }, { label: 'Overwrite matches', kind: 'primary', value: 'over' }]
+    });
+    if (!c || c === 'cancel') return;
+    overwrite = c === 'over';
+  }
+  const pb = progressBar();
+  const m = modal({ title: 'Importing items', body: pb.el, dismiss: false });
+  try {
+    const wanted = Object.keys(data.items).filter(id => !matchOf[id] || overwrite);
+    const prepared = {};
+    let n = 0;
+    for (const id of wanted) {
+      prepared[id] = await importedImage(data.items[id]);
+      pb.set(++n, wanted.length, 'Processed');
+    }
+    // Build the placement plan: [{ zone: tier index or -1 for Unranked, pos, iid }]
+    const plan = [];
+    data.tiers.forEach((t, ti) => t.items.forEach((iid, pos) => plan.push({ ti, pos, iid })));
+    data.pool.forEach((iid, pos) => plan.push({ ti: -1, pos, iid }));
+    let added = 0, over = 0, skipped = 0;
+    mutate(bd => {
+      const tierFor = ti => {
+        if (ti < 0) return null;
+        const src = data.tiers[ti];
+        let t = bd.tiers.find(x => norm(x.name) === norm(src.name));
+        if (!t) { t = { id: uid(), name: src.name, color: src.color, items: [] }; bd.tiers.splice(Math.min(ti, bd.tiers.length), 0, t); }
+        return t;
+      };
+      const place = [];
+      for (const p of plan) {
+        const src = data.items[p.iid];
+        if (matchOf[p.iid]) {
+          if (!overwrite) continue;
+          const it = bd.items[matchOf[p.iid]];
+          if (!it) continue;
+          it.name = src.name;
+          if (prepared[p.iid]) { it.img = prepared[p.iid]; it.link = null; }
+          else if (src.link) { it.img = null; it.link = src.link; }
+          removeFromAll(bd, it.id);
+          place.push({ ...p, id: it.id });
+          over++;
+        } else {
+          const img = prepared[p.iid];
+          if (!src.name && !img && !src.link) { skipped++; continue; }
+          const id = uid();
+          bd.items[id] = { id, name: src.name, img: img || null, link: img ? null : src.link };
+          place.push({ ...p, id });
+          added++;
+        }
+      }
+      for (const p of place) {
+        const t = tierFor(p.ti);
+        const list = t ? t.items : bd.pool;
+        list.splice(Math.min(p.pos, list.length), 0, p.id);
+      }
+    });
+    m.close();
+    toast(`Imported ${added} new${over ? `, overwrote ${over}` : ''}${skipped ? `, skipped ${skipped} empty` : ''}`);
+  } catch (e) {
+    m.close();
+    toast('Import failed: ' + (e.message || 'unknown error'));
+  }
+}
+
+// ---------- Screens: loading, errors, setup, home ----------
+function renderLoading(text) {
+  $('#app').replaceChildren(h('div', { class: 'center-screen' }, h('div', { class: 'spinner', 'aria-hidden': 'true' }), h('p', { class: 'hint' }, text || 'Loading…')));
+}
+function renderFatal(e) {
+  const auth = e && (e.status === 401 || e.status === 404);
+  $('#app').replaceChildren(h('div', { class: 'center-screen' },
+    h('div', { class: 'card narrow stack' },
+      h('h1', { class: 'h1' }, 'Couldn’t reach your data'),
+      h('p', { class: 'msg' }, friendlyError(e)),
+      h('div', { class: 'row wrap' },
+        btn('Try again', 'primary', () => route()),
+        auth ? btn('Reconnect', '', () => renderSetup()) : null))));
+}
+
+function renderSetup(msg) {
+  const cfg = S.cfg || {};
+  const repo = h('input', { class: 'field', type: 'text', placeholder: 'your-username/tierlist-data', value: cfg.owner ? `${cfg.owner}/${cfg.repo}` : '', autocapitalize: 'none', autocomplete: 'off', spellcheck: 'false' });
+  const token = h('input', { class: 'field', type: 'password', placeholder: 'github_pat_…', autocomplete: 'off', spellcheck: 'false' });
+  const err = h('p', { class: 'form-err', role: 'alert' }, msg || '');
+  const go = btn('Connect', 'primary', async () => {
+    err.textContent = '';
+    const m = repo.value.trim().match(/^([\w.-]+)\/([\w.-]+)$/);
+    const tk = token.value.trim();
+    if (!m) { err.textContent = 'Enter the repository as owner/name, for example dennis/tierlist-data.'; return; }
+    if (!tk) { err.textContent = 'Paste your access token.'; return; }
+    go.disabled = true; go.textContent = 'Connecting…';
+    try {
+      const next = await verifyConnection(m[1], m[2], tk);
+      S.cfg = next; lsSet('tl.cfg', next);
+      route();
+    } catch (e) {
+      err.textContent = friendlyError(e);
+      go.disabled = false; go.textContent = 'Connect';
+    }
+  });
+  token.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
+  $('#app').replaceChildren(h('div', { class: 'center-screen' },
+    h('div', { class: 'card narrow stack lg' },
+      h('div', { class: 'stack' },
+        h('h1', { class: 'h1' }, 'Connect to GitHub'),
+        h('p', { class: 'msg' }, 'Your boards are saved in a private GitHub repository. Enter its name and an access token with read and write access to that repository. The token stays in this browser only.')),
+      h('label', { class: 'lbl' }, h('span', {}, 'Data repository'), repo),
+      h('label', { class: 'lbl' }, h('span', {}, 'Access token'), token),
+      err,
+      h('div', { class: 'row' }, go, S.cfg ? btn('Cancel', '', () => route()) : null))));
+}
+
+async function verifyConnection(owner, repo, token) {
+  const tmp = S.cfg;
+  S.cfg = { owner, repo, token, branch: 'main' };
+  try {
+    const info = await gh('GET', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+    if (info.permissions && info.permissions.push === false) throw new GHError(403, 'The token can’t write to this repository. It needs Contents: Read and write.');
+    const branch = info.default_branch || 'main';
+    S.cfg.branch = branch;
+    try { await getHead(); }
+    catch (e) {
+      if (e.status === 409 || e.status === 404) throw new GHError(409, 'The repository is empty. On GitHub, add a README file to it, then connect again.');
+      throw e;
+    }
+    return { owner, repo, token, branch };
+  } catch (e) {
+    S.cfg = tmp;
+    throw e;
+  }
+}
+
+function openSettings() {
+  const theme = segmented([['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.prefs.theme, v => { setTheme(v); theme.set(v); }, 'Theme');
+  const m = modal({
+    title: 'Settings',
+    body: h('div', { class: 'stack lg' },
+      h('div', { class: 'lbl' }, h('span', {}, 'Appearance'), theme),
+      h('div', { class: 'lbl' }, h('span', {}, 'Repository'), h('p', { class: 'msg' }, S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected')),
+      h('div', { class: 'row wrap' },
+        btn('Change connection…', '', () => { m.close(); renderSetup(); }),
+        btn('Clear image cache', '', async () => { try { await caches.delete('tl-img-v1'); toast('Image cache cleared'); } catch { toast('Nothing to clear'); } }),
+        btn('Disconnect', 'danger', async () => {
+          if (await confirmBox('This removes the token from this browser. Your boards stay on GitHub.', { title: 'Disconnect?', confirm: 'Disconnect', danger: true })) {
+            m.close(); lsDel('tl.cfg'); S.cfg = null; S.board = null; clearImages(); renderSetup();
+          }
+        }))),
+    actions: [btn('Done', 'primary', () => m.close())]
+  });
+}
+
+// ---------- Board list ----------
+async function renderHome() {
+  clearImages();
+  S.board = null; S.dirty = false;
+  const list = h('div', { class: 'board-grid' });
+  const top = h('header', { class: 'topbar' },
+    h('div', { class: 'topbar-in' },
+      h('h1', { class: 'brand' }, 'Tier lists'),
+      h('div', { class: 'spacer' }),
+      themeButton(),
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', onclick: openSettings }, icon('gear'))));
+  $('#app').replaceChildren(top, h('main', { class: 'home-main' },
+    h('div', { class: 'home-actions' },
+      btn('New board', 'primary', createBoardFlow),
+      btn('Import board', '', () => importFlow(true))),
+    list));
+  paintHome(list);
+  // Refresh in the background, so changes from other devices show up.
+  try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); }
+}
+function paintHome(list) {
+  if (!list.isConnected) return;
+  const boards = S.index.boards;
+  if (!boards.length) {
+    list.replaceChildren(h('div', { class: 'empty' }, h('h2', {}, 'No boards yet'), h('p', { class: 'msg' }, 'Create a board to start ranking, or import one from a file.')));
+    return;
+  }
+  list.replaceChildren(...boards.map(bd => {
+    const colors = Array.isArray(bd.colors) ? bd.colors : [];
+    const card = h('a', { class: 'board-card', href: '#/b/' + bd.id },
+      h('div', { class: 'stripe', 'aria-hidden': 'true' }, colors.length ? colors.map(c => h('i', { style: { background: normHex(c) || '#8e8e93' } })) : h('i', { style: { background: 'var(--fill)' } })),
+      h('div', { class: 'card-title' }, bd.title || 'Untitled tier list'),
+      bd.description ? h('div', { class: 'card-desc' }, bd.description) : null,
+      h('div', { class: 'card-meta' }, `${bd.count || 0} ${bd.count === 1 ? 'item' : 'items'}`));
+    const more = h('button', { class: 'icon-btn card-more', type: 'button', 'aria-label': `Options for ${bd.title || 'board'}`, onclick: e => { e.preventDefault(); e.stopPropagation(); boardCardMenu(e.currentTarget, bd); } }, icon('more'));
+    return h('div', { class: 'board-card-wrap' }, card, more);
+  }));
+}
+function boardCardMenu(anchor, bd) {
+  const i = S.index.boards.findIndex(x => x.id === bd.id);
+  openMenu(anchor, [
+    { label: 'Rename…', onClick: () => renameBoardRemote(bd) },
+    { label: 'Duplicate', onClick: () => duplicateBoard(bd) },
+    { label: 'Move earlier', disabled: i <= 0, onClick: () => moveBoard(bd.id, -1) },
+    { label: 'Move later', disabled: i >= S.index.boards.length - 1, onClick: () => moveBoard(bd.id, 1) },
+    { divider: true },
+    { label: 'Delete…', danger: true, onClick: () => deleteBoard(bd.id, false) }
+  ]);
+}
+const refreshHome = () => { const l = $('.board-grid'); if (l) paintHome(l); };
+
+async function createBoardFlow() {
+  const v = await promptBox({ title: 'New board', label: 'Title', placeholder: 'Untitled tier list', confirm: 'Create' });
+  if (v == null) return;
+  const m = modal({ title: 'Creating board', body: h('div', { class: 'center-inline' }, h('div', { class: 'spinner' })), dismiss: false });
+  try {
+    const b = newBoard(v.trim(), '');
+    await createBoardRemote(b);
+    m.close();
+    location.hash = '#/b/' + b.id;
+  } catch (e) { m.close(); toast(friendlyError(e)); }
+}
+async function createBoardRemote(b) {
+  const bp = boardPath(b.id), dir = imgDir(b.id);
+  const imgs = [...referencedImages(b)].filter(f => S.imgs.has(f));
+  if (!imgs.length) {
+    await putFile(bp, ser(b, 2), null);
+  } else {
+    await commitFiles(`Create ${b.title || 'board'}`, () => ({ upload: [{ path: bp, text: ser(b, 2) }, ...imgs.map(f => ({ path: dir + f, blob: S.imgs.get(f).blob }))] }));
+  }
+  await syncIndexEntry(b);
+}
+async function renameBoardRemote(bd) {
+  const v = await promptBox({ title: 'Rename board', value: bd.title || '', confirm: 'Rename' });
+  if (v == null) return;
+  try {
+    const f = await getFile(boardPath(bd.id));
+    if (f) { const b = parseBoard(f.text); b.id = bd.id; b.title = v.trim(); await putFile(boardPath(bd.id), ser(b, 2), f.sha); }
+    await updateIndex(idx => { const x = idx.boards.find(y => y.id === bd.id); if (x) x.title = v.trim(); });
+    refreshHome();
+  } catch (e) { toast(friendlyError(e)); }
+}
+async function duplicateBoard(bd) {
+  const m = modal({ title: 'Duplicating board', body: h('div', { class: 'center-inline' }, h('div', { class: 'spinner' })), dismiss: false });
+  try {
+    const f = await getFile(boardPath(bd.id));
+    if (!f) throw new Error('That board no longer exists.');
+    const src = parseBoard(f.text);
+    const id = uid();
+    const copy = parseBoard(ser(src));
+    copy.id = id; copy.title = (src.title || 'Untitled tier list') + ' copy';
+    const files = await getTreeFiles(await getHead());
+    const copies = [...referencedImages(src)].filter(n => files.files.has(imgDir(bd.id) + n)).map(n => ({ path: imgDir(id) + n, sha: files.files.get(imgDir(bd.id) + n) }));
+    await commitFiles(`Duplicate ${src.title || 'board'}`, () => ({ upload: [{ path: boardPath(id), text: ser(copy, 2) }], copy: copies }));
+    await syncIndexEntry(copy);
+    m.close(); refreshHome(); toast('Board duplicated');
+  } catch (e) { m.close(); toast(friendlyError(e)); }
+}
+async function moveBoard(id, dir) {
+  try {
+    await updateIndex(idx => {
+      const i = idx.boards.findIndex(x => x.id === id), j = i + dir;
+      if (i < 0 || j < 0 || j >= idx.boards.length) return;
+      [idx.boards[i], idx.boards[j]] = [idx.boards[j], idx.boards[i]];
+    });
+    refreshHome();
+  } catch (e) { toast(friendlyError(e)); }
+}
+async function deleteBoard(id, fromBoard) {
+  const bd = S.index.boards.find(x => x.id === id) || { title: S.board && S.board.title };
+  const ok = await confirmBox('This permanently deletes the board and its images from your data repository. GitHub keeps older commits, but the app can’t restore them.', { title: `Delete “${bd.title || 'Untitled tier list'}”?`, confirm: 'Delete', danger: true });
+  if (!ok) return;
+  const m = modal({ title: 'Deleting board', body: h('div', { class: 'center-inline' }, h('div', { class: 'spinner' })), dismiss: false });
+  try {
+    const dir = `boards/${id}/`;
+    await commitFiles('Delete board', files => ({ upload: [], remove: [...files.keys()].filter(p => p.startsWith(dir)) }));
+    await updateIndex(idx => { idx.boards = idx.boards.filter(x => x.id !== id); });
+    if (fromBoard) { S.board = null; S.dirty = false; S.conflict = null; }
+    m.close();
+    if (fromBoard) location.hash = ''; else refreshHome();
+  } catch (e) { m.close(); toast(friendlyError(e)); }
+}
+
+// ---------- Routing and startup ----------
+let routing = Promise.resolve();
+function route() {
+  routing = routing.then(doRoute).catch(e => renderFatal(e));
+  return routing;
+}
+async function doRoute() {
+  if (!S.cfg) { renderSetup(); return; }
+  const m = location.hash.match(/^#\/b\/([\w-]+)$/);
+  if (S.board && (!m || m[1] !== S.board.id)) {
+    if (S.dirty && !S.conflict) await saveNow(false);
+    if (S.dirty && !S.conflict) toast('Your last changes could not be saved.');
+  }
+  if (m) { await openBoard(m[1]); return; }
+  try { if (!S.index.sha && !S.index.boards.length) await loadIndex(); } catch (e) { renderFatal(e); return; }
+  await renderHome();
+}
+
+// Pick up edits from another device when returning to a tab with no unsaved changes.
+async function checkRemote() {
+  if (!S.board || S.dirty || S.saving || S.conflict || document.hidden) return;
+  if (Date.now() - S.lastCheck < 30000) return;
+  S.lastCheck = Date.now();
+  try {
+    const f = await getFile(boardPath(S.board.id));
+    if (f && f.sha !== S.boardSha && !S.dirty && !S.saving) {
+      await refreshRepo();
+      adoptRemote(f.text, f.sha);
+      toast('Updated with changes from another device');
+    }
+  } catch { /* ignore */ }
+}
+
+function onKeys(e) {
+  const mod = e.metaKey || e.ctrlKey;
+  if (!mod || !S.board || modalStack.length) return;
+  const typing = /^(input|textarea|select)$/i.test((e.target.tagName || ''));
+  const k = e.key.toLowerCase();
+  if (k === 's') { e.preventDefault(); saveNow(true); }
+  else if (typing) return;
+  else if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo(); }
+}
+
+function boot() {
+  S.prefs = Object.assign(S.prefs, lsGet('tl.prefs', {}));
+  S.cfg = lsGet('tl.cfg', null);
+  applyTheme();
+  document.addEventListener('keydown', onKeys);
+  window.addEventListener('hashchange', route);
+  window.addEventListener('beforeunload', e => { if (S.board && S.dirty) { saveNow(false); e.preventDefault(); e.returnValue = ''; } });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (S.board && S.dirty) saveNow(false); }
+    else checkRemote();
+  });
+  window.addEventListener('pagehide', () => { if (S.board && S.dirty) saveNow(false); });
+  window.addEventListener('focus', checkRemote);
+  setInterval(tick, 2000);
+  bindFileDrop();
+  route();
+}
+boot();
+
+</script>
+</body>
+</html>

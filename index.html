@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="referrer" content="no-referrer">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Crect x='6' y='7' width='20' height='4' rx='2' fill='%23fff'/%3E%3Crect x='6' y='14' width='14' height='4' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='6' y='21' width='8' height='4' rx='2' fill='%23fff' opacity='.6'/%3E%3C/svg%3E">
-<title>Tier lists</title>
+<title>Ranker</title>
 <style>
 :root {
   --bg: #f5f5f7; --surface: #ffffff; --fill: #ececf0; --fill-2: #e3e3e8;
@@ -127,13 +127,22 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 
 /* Tiers */
-.tiers { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; gap: 1px; background-color: var(--sep); }
-.tier { display: flex; background: var(--surface); min-height: calc(var(--tile) + 16px); }
-.tier-label { flex: none; width: clamp(64px, calc(var(--tile) * 0.95), 124px); border: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 6px; font-weight: 700; font-size: clamp(14px, calc(var(--tile) * 0.22), 26px); line-height: 1.15; word-break: break-word; overflow-wrap: anywhere; letter-spacing: -0.01em; }
+.tiers { border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: fit-content(30%) minmax(0, 1fr); gap: 1px 0; background: var(--sep); }
+.tiers.fixed { grid-template-columns: min(var(--label-w, 104px), 60%) minmax(0, 1fr); }
+.tiers.resizing, .tiers.resizing * { cursor: col-resize !important; user-select: none; -webkit-user-select: none; }
+.tier { display: contents; }
+.tier-label { position: relative; min-width: clamp(56px, calc(var(--tile) * 0.7), 110px); max-width: 55vw; border: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 18px 8px 12px; font-weight: 700; font-size: clamp(14px, calc(var(--tile) * 0.22), 26px); line-height: 1.15; word-break: normal; overflow-wrap: break-word; text-wrap: balance; letter-spacing: -0.01em; }
+.tiers.fixed .tier-label { min-width: 0; max-width: none; overflow-wrap: anywhere; }
+.tier-label-t { min-width: 0; }
+.tier-grip { position: absolute; top: 0; bottom: 0; right: 0; width: 16px; cursor: col-resize; touch-action: none; }
+.tier-grip::after { content: ""; position: absolute; top: 50%; right: 4px; width: 3px; height: 24px; margin-top: -12px; border-radius: 2px; background: currentColor; opacity: 0; transition: opacity 0.12s; }
+.tier-label:hover .tier-grip::after, .tiers.resizing .tier-grip::after { opacity: 0.4; }
+@media (hover: none) { .tier-grip::after { opacity: 0.3; } }
 .tier-label:hover { filter: brightness(1.05); }
-.no-tiers { background: var(--surface); padding: 28px; text-align: center; color: var(--text-2); }
+.no-tiers { grid-column: 1 / -1; background: var(--surface); padding: 28px; text-align: center; color: var(--text-2); }
 .zone { flex: 1; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; padding: 8px; min-height: calc(var(--tile) + 16px); transition: background 0.12s; min-width: 0; }
-.zone.drop-over { background: var(--accent-soft); }
+.tiers .zone { background: var(--surface); }
+.zone.drop-over, .tiers .zone.drop-over { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .zone-empty { color: var(--text-3); font-size: 13px; align-self: center; padding: 0 6px; pointer-events: none; }
 
 .pool-wrap { margin-top: 22px; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding-bottom: 4px; }
@@ -144,17 +153,18 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .zone.pool { padding: 10px 12px 14px; }
 
 /* Tiles */
-.tile { width: var(--tile); flex: none; border-radius: 10px; overflow: hidden; background: var(--fill); cursor: grab; position: relative; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: opacity 0.12s; }
+.tile { width: var(--tile); flex: none; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; background: var(--fill); cursor: grab; position: relative; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: opacity 0.12s; }
 .tile.named { background: var(--fill); }
-.tile-media { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.tile-media { flex: none; width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
 .tile-media img { width: 100%; height: 100%; display: block; -webkit-touch-callout: none; pointer-events: none; }
 .fit-fill .tile-media img { object-fit: cover; }
 .fit-fit .tile-media img { object-fit: contain; }
 .tile-media.ph { color: var(--text-3); }
-.ph-name { padding: 6px; text-align: center; font-weight: 600; font-size: clamp(10px, calc(var(--tile) * 0.14), 16px); line-height: 1.2; color: var(--text-2); overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
+.ph-name { margin: 6px; text-align: center; font-weight: 600; font-size: clamp(10px, calc(var(--tile) * 0.14), 16px); line-height: 1.2; color: var(--text-2); overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
 .tile-media.loading::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%); animation: shimmer 1.3s infinite; }
 @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-.tile-name { padding: 4px 5px 5px; font-size: clamp(10.5px, calc(var(--tile) * 0.13), 14px); line-height: 1.25; text-align: center; font-weight: 560; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; background: var(--surface); border-top: 1px solid var(--sep); }
+.tile-name { flex: 1; display: flex; align-items: center; justify-content: center; padding: 4px 5px 5px; background: var(--surface); border-top: 1px solid var(--sep); min-width: 0; }
+.tile-name-t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-align: center; font-size: clamp(10.5px, calc(var(--tile) * 0.13), 14px); line-height: 1.25; font-weight: 560; word-break: break-word; }
 .tile.dragging { opacity: 0.28; }
 .tile.ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; box-shadow: var(--shadow-lg); opacity: 0.96; cursor: grabbing; transition: none; will-change: transform; }
 .drop-line { position: fixed; left: 0; top: 0; width: 4px; border-radius: 2px; background: var(--accent); z-index: 900; pointer-events: none; box-shadow: 0 0 0 3px var(--accent-soft); display: none; }
@@ -280,6 +290,9 @@ body.file-over::after { content: "Drop images to add them"; position: fixed; ins
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
+.note-field { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.4; }
+.viewer-note { max-width: min(560px, 100%); max-height: 22vh; overflow: auto; color: rgba(245, 245, 247, 0.82); font-size: 14.5px; line-height: 1.45; text-align: center; white-space: pre-wrap; word-break: break-word; }
+.viewer-note:empty { display: none; }
 </style>
 </head>
 <body>
@@ -327,7 +340,7 @@ const ICONS = {
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
-  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   chev: '<path d="M9 5l7 7-7 7"/>',
   alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.4"/>',
@@ -412,7 +425,13 @@ class Conflict extends Error {
 
 const S = {
   cfg: null,
-  prefs: { theme: 'auto', size: null, useNames: true },
+  // Device-only settings (saved in this browser, never synced): theme, tile size, tier label width.
+  prefs: { theme: 'auto', size: null, labelW: null },
+  // Per-board, per-device view settings: names shown, image fit. Loaded when a board opens.
+  view: { names: true, fit: 'fill' },
+  pauseAuto: false,   // session only: reset whenever a board is opened
+  squash: null,       // the commit this editing session is folding its saves into
+  limitNotified: false,
   repo: { commit: null, files: new Map() },
   index: { boards: [], sha: null },
   board: null,
@@ -422,7 +441,6 @@ const S = {
   dirty: false, saving: false, err: null, conflict: null, progress: null,
   savePromise: null, savedAt: null,
   lastSaveEnd: 0, lastChange: 0, dirtySince: 0, backoffUntil: 0, lastCheck: 0,
-  indexStale: false,
   imgs: new Map(), imgFail: new Set(), imgLoading: Promise.resolve(), loadToken: 0
 };
 
@@ -433,11 +451,28 @@ let lastPost = 0;
 // Writes are serialized and spaced out to stay well under GitHub's secondary rate limit
 // (80 content-creating requests per minute). 1.2 s apart is about 50 per minute.
 const WRITE_GAP_MS = 1200;
+
+// Rolling record of write requests in the last hour. It survives reloads on this device and
+// drives the autosave slowdown. GitHub documents 500 content-creating requests per hour.
+let writeLog = lsGet('tl.writes', []);
+function noteWrite() {
+  const now = Date.now();
+  writeLog.push(now);
+  writeLog = writeLog.filter(t => now - t < 3600000);
+  lsSet('tl.writes', writeLog);
+}
+function writesLastHour() {
+  const now = Date.now();
+  writeLog = writeLog.filter(t => now - t < 3600000);
+  return writeLog.length;
+}
+
 function paced(fn) {
   const p = postChain.then(async () => {
     const wait = lastPost + WRITE_GAP_MS - Date.now();
     if (wait > 0) await sleep(wait);
     lastPost = Date.now();
+    noteWrite();
     return fn();
   });
   postChain = p.catch(() => {});
@@ -512,15 +547,16 @@ async function getFile(path) {
     throw e;
   }
 }
-async function putFile(path, text, sha) {
+async function putFile(path, text, sha, message) {
   try {
     const r = await gh('PUT', R(`/contents/${encPath(path)}`), {
-      message: `Update ${path}`,
+      message: message || `Update ${path}`,
       content: b64FromText(text),
       branch: S.cfg.branch,
       ...(sha ? { sha } : {})
     });
-    return { sha: r.content.sha, commit: r.commit.sha };
+    const parents = (r.commit && r.commit.parents) || [];
+    return { sha: r.content.sha, commit: r.commit.sha, tree: r.commit.tree && r.commit.tree.sha, parent: parents[0] && parents[0].sha };
   } catch (e) {
     if (e.status === 409 || (e.status === 422 && /sha|exist/i.test(e.message))) throw new Conflict();
     throw e;
@@ -534,13 +570,40 @@ async function createBlob(u) {
   return r.sha;
 }
 
+// Folding autosaves into one commit. While the branch tip is still the commit this session
+// made, a new save replaces that commit (same parent, newer content) instead of stacking another
+// on top. After 30 minutes, or if anything else committed in between, a new commit starts.
+const SQUASH_MS = 30 * 60 * 1000;
+const canSquash = head => !!(S.squash && S.squash.commit === head && Date.now() - S.squash.started < SQUASH_MS);
+
+// Called after a one-file save made through the Contents API (one new commit on top of the branch).
+// Squashing is optional. If it fails, the save itself has already succeeded.
+async function squashAfterPut(r, message) {
+  const sq = S.squash;
+  if (!(sq && r.parent && r.parent === sq.commit && r.tree && Date.now() - sq.started < SQUASH_MS)) {
+    S.squash = { commit: r.commit, parent: r.parent, started: Date.now() };
+    return;
+  }
+  try {
+    const c = await gh('POST', R('/git/commits'), { message, tree: r.tree, parents: [sq.parent] });
+    if ((await getHead()) !== r.commit) { S.squash = null; return; } // something else committed: leave history alone
+    await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: c.sha, force: true });
+    S.squash = { ...sq, commit: c.sha };
+    S.repo.commit = c.sha;
+  } catch {
+    S.squash = null;
+  }
+}
+
 // Atomic multi-file commit through the Git Data API.
 // plan(files) receives the freshly fetched file list and returns { upload, copy, remove }.
-async function commitFiles(message, plan) {
+// With opts.squash, the commit joins the current editing session's commit when possible.
+async function commitFiles(message, plan, opts = {}) {
   const uploaded = new Map();
   for (let attempt = 0; attempt < 3; attempt++) {
     const head = await getHead();
     const { treeSha, files } = await getTreeFiles(head);
+    const squash = !!opts.squash && canSquash(head);
     const p = plan(files);
     const entries = [];
     const total = p.upload.filter(u => !uploaded.has(u.path)).length;
@@ -559,16 +622,21 @@ async function commitFiles(message, plan) {
     for (const c of p.copy || []) entries.push({ path: c.path, mode: '100644', type: 'blob', sha: c.sha });
     for (const path of p.remove || []) if (files.has(path)) entries.push({ path, mode: '100644', type: 'blob', sha: null });
     const tree = await gh('POST', R('/git/trees'), { base_tree: treeSha, tree: entries });
-    const commit = await gh('POST', R('/git/commits'), { message, tree: tree.sha, parents: [head] });
+    const commit = await gh('POST', R('/git/commits'), { message, tree: tree.sha, parents: squash ? [S.squash.parent] : [head] });
     try {
-      await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: commit.sha });
+      // Replacing a commit needs a forced update, so first make sure nothing else was pushed meanwhile.
+      if (squash && (await getHead()) !== head) continue;
+      await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: commit.sha, ...(squash ? { force: true } : {}) });
     } catch (e) {
+      // A refused forced update (for example, a protected branch): fall back to a normal commit.
+      if (squash && e.status && e.status < 500 && e.status !== 401 && !e.limited) { S.squash = null; continue; }
       if (e.status === 422 || e.status === 409) continue; // branch moved; try again
       throw e;
     }
     const nf = new Map(files);
     for (const e of entries) { if (e.sha === null) nf.delete(e.path); else nf.set(e.path, e.sha); }
     S.repo = { commit: commit.sha, files: nf };
+    if (opts.squash) S.squash = squash ? { ...S.squash, commit: commit.sha } : { commit: commit.sha, parent: head, started: Date.now() };
     return { files: nf, commit: commit.sha };
   }
   throw new GHError(409, 'The repository kept changing while saving. Try again.');
@@ -612,11 +680,12 @@ function friendlyError(e) {
 // ---------- Board model ----------
 const DEFAULT_TIERS = [['S', '#ff6b6b'], ['A', '#ffa94d'], ['B', '#ffd43b'], ['C', '#a9e34b'], ['D', '#4dabf7']];
 const PALETTE = ['#ff6b6b', '#ff8a5b', '#ffa94d', '#ffd43b', '#a9e34b', '#51cf66', '#38d9a9', '#3bc9db', '#4dabf7', '#748ffc', '#9775fa', '#da77f2', '#f783ac', '#adb5bd', '#6e6e73'];
+const NOTE_MAX = 2000;
 const safeFile = f => (typeof f === 'string' && /^[\w.-]{1,80}$/.test(f) ? f : null);
 
 function newBoard(title, description) {
   return {
-    id: uid(), title: title || '', description: description || '', showNames: true, fit: 'fill',
+    id: uid(), title: title || '', description: description || '',
     tiers: DEFAULT_TIERS.map(([name, color]) => ({ id: uid(), name, color, items: [] })),
     pool: [], items: {}
   };
@@ -626,10 +695,10 @@ function ser(b, indent) {
   const items = {};
   for (const k of Object.keys(b.items).sort()) {
     const it = b.items[k];
-    items[k] = { id: it.id, name: it.name || '', img: it.img || null, link: it.link || null };
+    items[k] = { id: it.id, name: it.name || '', img: it.img || null, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
   }
   return JSON.stringify({
-    v: 1, id: b.id, title: b.title, description: b.description, showNames: !!b.showNames, fit: b.fit,
+    v: 1, id: b.id, title: b.title, description: b.description,
     tiers: b.tiers.map(t => ({ id: t.id, name: t.name, color: t.color, items: t.items })),
     pool: b.pool, items
   }, null, indent);
@@ -638,10 +707,12 @@ function parseBoard(text) {
   const o = typeof text === 'string' ? JSON.parse(text) : text;
   const b = {
     id: String(o.id || ''), title: String(o.title || ''), description: String(o.description || ''),
-    showNames: o.showNames !== false, fit: o.fit === 'fit' ? 'fit' : 'fill', tiers: [], pool: [], items: {}
+    // Older boards stored these in board.json. They are now per device, so keep them only as first-time defaults.
+    legacy: { names: o.showNames !== false, fit: o.fit === 'fit' ? 'fit' : 'fill' },
+    tiers: [], pool: [], items: {}
   };
   for (const [k, v] of Object.entries(o.items || {})) {
-    b.items[k] = { id: k, name: String(v.name || ''), img: safeFile(v.img), link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null };
+    b.items[k] = { id: k, name: String(v.name || ''), img: safeFile(v.img), link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null, note: String(v.note || '').slice(0, NOTE_MAX) };
   }
   const seen = new Set();
   for (const t of o.tiers || []) {
@@ -723,8 +794,6 @@ async function saveNow(manual) {
     try {
       await doSave(b, text);
       S.lastSavedJson = compact; S.lastSaveEnd = Date.now(); S.savedAt = new Date();
-      try { await syncIndexEntry(b); S.indexStale = false; }
-      catch { S.indexStale = true; }
       return true;
     } catch (e) {
       if (e instanceof Conflict) { await prepareConflict(); return false; }
@@ -742,32 +811,66 @@ async function saveNow(manual) {
   return p;
 }
 
-async function doSave(b, text) {
-  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b);
-  const missing = [...refd].filter(f => !S.repo.files.has(dir + f) && S.imgs.has(f));
-  const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
-  if (!missing.length && !orphans.length) {
-    // Light path: one request.
-    const r = await putFile(bp, text, S.boardSha);
-    S.boardSha = r.sha; S.repo.files.set(bp, r.sha); S.repo.commit = r.commit;
-    return;
-  }
-  const res = await commitFiles(`Update ${b.title || 'board'}`, files => {
-    if ((files.get(bp) || null) !== (S.boardSha || null)) throw new Conflict();
-    const upload = [{ path: bp, text }];
-    for (const f of refd) if (!files.has(dir + f) && S.imgs.has(f)) upload.push({ path: dir + f, blob: S.imgs.get(f).blob });
-    const remove = [...files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
-    return { upload, remove };
-  });
-  S.boardSha = res.files.get(bp);
-}
+class Retry extends Error {}
 
 // The board list stores just enough to draw a card: title, description, tier colors, item count.
 const boardMeta = b => ({ title: b.title, description: b.description, colors: b.tiers.map(t => t.color), count: Object.keys(b.items).length });
+const metaKey = m => JSON.stringify([m.title, m.description || '', m.colors || [], m.count || 0]);
+
+// One save is one commit. The board list entry (index.json) travels in the same commit as the board,
+// and repeated saves in one editing session fold into that commit (see squashAfterPut and commitFiles).
+async function doSave(b, text) {
+  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b);
+  const message = `Update ${b.title || 'board'}`;
+  const missing = [...refd].filter(f => !S.repo.files.has(dir + f) && S.imgs.has(f));
+  const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
+  const meta = boardMeta(b);
+  const entry = S.index.boards.find(x => x.id === b.id);
+  const metaChanged = !entry || metaKey(entry) !== metaKey(meta);
+  if (!missing.length && !orphans.length && !metaChanged) {
+    // Common case: only the layout changed. One file, one request, then fold the commit.
+    const r = await putFile(bp, text, S.boardSha, message);
+    S.boardSha = r.sha; S.repo.files.set(bp, r.sha); S.repo.commit = r.commit;
+    await squashAfterPut(r, message);
+    return;
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let idx = null, idxText = null, idxSha = null;
+    if (metaChanged) {
+      const f = await getFile('index.json');
+      idx = f ? JSON.parse(f.text) : { v: 1, boards: [] };
+      if (!Array.isArray(idx.boards)) idx.boards = [];
+      idxSha = f ? f.sha : null;
+      const x = idx.boards.find(y => y.id === b.id);
+      if (x) Object.assign(x, meta); else idx.boards.push({ id: b.id, ...meta });
+      idxText = JSON.stringify(idx, null, 2);
+    }
+    try {
+      const res = await commitFiles(message, files => {
+        if ((files.get(bp) || null) !== (S.boardSha || null)) throw new Conflict();
+        if (metaChanged && (files.get('index.json') || null) !== idxSha) throw new Retry();
+        const upload = [{ path: bp, text }];
+        if (idxText) upload.push({ path: 'index.json', text: idxText });
+        for (const f of refd) if (!files.has(dir + f) && S.imgs.has(f)) upload.push({ path: dir + f, blob: S.imgs.get(f).blob });
+        const remove = [...files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
+        return { upload, remove };
+      }, { squash: true });
+      S.boardSha = res.files.get(bp);
+      if (idx) S.index = { boards: idx.boards, sha: res.files.get('index.json') };
+      return;
+    } catch (e) {
+      if (e instanceof Retry) continue; // the board list changed on another device: read it again
+      throw e;
+    }
+  }
+  throw new GHError(409, 'The board list kept changing. Try again.');
+}
+
+// Used when creating, duplicating, or importing a board, which write the list on their own.
 async function syncIndexEntry(b) {
   const meta = boardMeta(b);
   const e = S.index.boards.find(x => x.id === b.id);
-  if (e && JSON.stringify([e.title, e.description || '', e.colors || [], e.count || 0]) === JSON.stringify([meta.title, meta.description, meta.colors, meta.count])) return;
+  if (e && metaKey(e) === metaKey(meta)) return;
   await updateIndex(idx => {
     const x = idx.boards.find(y => y.id === b.id);
     if (x) Object.assign(x, meta);
@@ -775,19 +878,26 @@ async function syncIndexEntry(b) {
   });
 }
 
-// Autosave: at most once every 10 seconds, only when something changed.
+// Autosave. A save starts after 4 seconds without edits, or 20 seconds after the first unsaved
+// change during continuous editing, and never sooner than 10 seconds after the last save finished.
+// Saves from one editing session fold into one commit, so this does not flood the history.
+// As the hourly write count grows, the gap between saves widens to stay inside GitHub's limits.
+const QUIET_MS = 4000, MAX_WAIT_MS = 20000, BASE_GAP_MS = 10000;
+function minGapMs() {
+  const n = writesLastHour();
+  return n >= 350 ? 180000 : n >= 250 ? 60000 : BASE_GAP_MS;
+}
 function tick() {
-  if (!S.board || S.saving || S.conflict) return;
+  if (!S.board || S.saving || S.conflict || S.pauseAuto || !S.dirty) return;
   const now = Date.now();
   if (now < S.backoffUntil) return;
-  if (!S.dirty) {
-    if (S.indexStale && now - S.lastSaveEnd > 15000) {
-      syncIndexEntry(S.board).then(() => { S.indexStale = false; }).catch(() => { S.lastSaveEnd = Date.now(); });
-    }
+  if (writesLastHour() >= 450) {
+    if (!S.limitNotified) { S.limitNotified = true; toast('Close to GitHub’s hourly write limit. Autosave is on hold for a while. Use Save when you need to.', { ms: 8000 }); }
     return;
   }
-  if (now - S.lastSaveEnd < 10000) return;
-  if (now - S.lastChange < 1500 && now - S.dirtySince < 20000) return;
+  S.limitNotified = false;
+  if (now - S.lastSaveEnd < minGapMs()) return;
+  if (now - S.lastChange < QUIET_MS && now - S.dirtySince < MAX_WAIT_MS) return;
   saveNow(false);
 }
 
@@ -1115,7 +1225,7 @@ function tileEl(id) {
   const it = S.board.items[id];
   if (!it) return null;
   const url = imgUrl(it);
-  const showName = S.board.showNames && it.name;
+  const showName = S.view.names && it.name;
   const loading = it.img && !S.imgs.has(it.img) && !S.imgFail.has(it.img) && !it.link;
   const media = h('div', { class: 'tile-media' + (url ? '' : ' ph') });
   if (url) {
@@ -1124,10 +1234,27 @@ function tileEl(id) {
     media.append(im);
   } else {
     media.classList.toggle('loading', !!loading);
-    if (!loading) media.append(it.name && !S.board.showNames ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
+    if (!loading) media.append(it.name && !S.view.names ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
   }
-  return h('div', { class: 'tile fit-' + S.board.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item' },
-    media, showName ? h('div', { class: 'tile-name' }, it.name) : null);
+  return h('div', { class: 'tile fit-' + S.view.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item' },
+    media, showName ? h('div', { class: 'tile-name' }, h('span', { class: 'tile-name-t' }, it.name)) : null);
+}
+
+// Names and image fit are per board and per device. They live in this browser only.
+function loadView(b) {
+  const v = (lsGet('tl.views', {}) || {})[b.id] || {};
+  const lg = b.legacy || {};
+  S.view = {
+    names: typeof v.names === 'boolean' ? v.names : lg.names !== false,
+    fit: v.fit === 'fit' || v.fit === 'fill' ? v.fit : (lg.fit || 'fill')
+  };
+}
+function setView(patch) {
+  Object.assign(S.view, patch);
+  const all = lsGet('tl.views', {}) || {};
+  all[S.board.id] = { names: S.view.names, fit: S.view.fit };
+  lsSet('tl.views', all);
+  renderBody();
 }
 
 function zoneEl(zone, items, cls) {
@@ -1142,10 +1269,12 @@ function renderBody() {
   if (!root || !S.board) return;
   const b = S.board;
   root.style.setProperty('--tile', tileSize() + 'px');
-  const tiers = h('div', { class: 'tiers' });
+  const tiers = h('div', { class: 'tiers' + (S.prefs.labelW ? ' fixed' : '') });
+  if (S.prefs.labelW) tiers.style.setProperty('--label-w', S.prefs.labelW + 'px');
   for (const t of b.tiers) {
     const label = h('button', { class: 'tier-label', type: 'button', style: { background: t.color, color: textOn(t.color) }, 'aria-label': `Edit tier ${t.name || 'unnamed'}`, onclick: () => editTier(t.id) },
-      h('span', {}, t.name || ' '));
+      h('span', { class: 'tier-label-t' }, t.name || '\u00a0'),
+      h('span', { class: 'tier-grip', role: 'separator', 'aria-orientation': 'vertical', title: 'Drag to resize. Double-click to reset.' }));
     tiers.append(h('div', { class: 'tier', 'data-tier': t.id }, label, zoneEl(t.id, t.items)));
   }
   if (!b.tiers.length) tiers.append(h('div', { class: 'no-tiers' }, 'This board has no tiers yet. Add one to start ranking.'));
@@ -1160,8 +1289,48 @@ function renderBody() {
   const scroll = root.scrollTop;
   root.replaceChildren(tiers, pool);
   root.scrollTop = scroll;
+  initLabelResize(tiers);
   updateUndoButtons();
 }
+// Tier label width: automatic by default (fits the longest name). Dragging the grip on a label
+// sets a fixed width for this device. Double-click the grip, or use the board menu, to go back to automatic.
+function initLabelResize(tiers) {
+  tiers.addEventListener('click', e => { if (e.target.closest('.tier-grip')) e.stopPropagation(); }, true);
+  tiers.addEventListener('dblclick', e => { if (e.target.closest('.tier-grip')) resetLabelWidth(); });
+  tiers.addEventListener('pointerdown', e => {
+    const g = e.target.closest('.tier-grip');
+    if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    const label = g.closest('.tier-label');
+    const startX = e.clientX, startW = label.getBoundingClientRect().width;
+    const total = tiers.getBoundingClientRect().width;
+    const min = 48, max = Math.max(min + 20, total * 0.6);
+    g.setPointerCapture(e.pointerId);
+    tiers.classList.add('resizing');
+    const move = ev => {
+      const w = Math.round(Math.min(max, Math.max(min, startW + ev.clientX - startX)));
+      S.prefs.labelW = w;
+      tiers.classList.add('fixed');
+      tiers.style.setProperty('--label-w', w + 'px');
+    };
+    const up = () => {
+      g.removeEventListener('pointermove', move);
+      g.removeEventListener('pointerup', up);
+      g.removeEventListener('pointercancel', up);
+      tiers.classList.remove('resizing');
+      savePrefs();
+    };
+    g.addEventListener('pointermove', move);
+    g.addEventListener('pointerup', up);
+    g.addEventListener('pointercancel', up);
+  });
+}
+function resetLabelWidth() {
+  S.prefs.labelW = null; savePrefs();
+  const t = $('.tiers');
+  if (t) { t.classList.remove('fixed'); t.style.removeProperty('--label-w'); }
+}
+
 function onImageReady(f) {
   if (!$('#boardBody') || !S.board) return;
   for (const t of document.querySelectorAll('.tile')) {
@@ -1193,6 +1362,7 @@ function renderStatus() {
   if (S.conflict) { cls = 'err'; text = 'Changed elsewhere'; short = 'Conflict'; }
   else if (S.saving) { cls = 'busy'; text = S.progress && S.progress.total > 1 ? `Saving ${S.progress.done}/${S.progress.total}` : 'Saving'; short = 'Saving'; }
   else if (S.err) { cls = 'err'; text = 'Couldn’t save'; short = 'Error'; }
+  else if (S.pauseAuto) { cls = 'warn'; text = S.dirty ? 'Paused, unsaved changes' : 'Autosave paused'; short = 'Paused'; }
   else if (S.dirty) { cls = 'warn'; text = 'Unsaved changes'; short = 'Unsaved'; }
   el.className = 'status ' + cls;
   el.replaceChildren(h('i', { class: 'dot' }), h('span', { class: 'long' }, text), h('span', { class: 'short' }, short));
@@ -1219,7 +1389,9 @@ async function openBoard(id) {
     S.boardSha = f.sha;
     S.lastSavedJson = ser(S.board);
     S.hist = { past: [], future: [] };
-    S.dirty = false; S.err = null; S.conflict = null; S.savedAt = new Date(); S.lastSaveEnd = Date.now(); S.indexStale = false;
+    S.dirty = false; S.err = null; S.conflict = null; S.savedAt = new Date(); S.lastSaveEnd = Date.now();
+    S.pauseAuto = false; S.squash = null;
+    loadView(S.board);
     renderBoardScreen();
     startImageLoad();
   } catch (e) {
@@ -1249,10 +1421,11 @@ function renderBoardScreen() {
       themeButton(),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Board options', onclick: e => boardMenu(e.currentTarget) }, icon('more'))));
 
+  const fitSeg = segmented([['fill', 'Fill'], ['fit', 'Fit']], S.view.fit, v => { fitSeg.set(v); setView({ fit: v }); }, 'Image fit');
   const controls = h('div', { class: 'controls' },
     h('label', { class: 'size-ctl' }, h('span', {}, 'Size'), slider),
-    h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: b.showNames, onchange: e => { const v = e.target.checked; mutate(x => { x.showNames = v; }); } }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
-    segmented([['fill', 'Fill'], ['fit', 'Fit']], b.fit, v => mutate(x => { x.fit = v; }), 'Image fit'));
+    h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: S.view.names, onchange: e => setView({ names: e.target.checked }) }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
+    fitSeg);
 
   const app = $('#app');
   app.replaceChildren(top,
@@ -1283,15 +1456,30 @@ function mutateText(fn, key) {
   renderTopbar();
 }
 
-async function leaveBoard() {
-  if (S.board && S.dirty && !S.conflict) {
-    const ok = await saveNow(true);
-    if (!ok && S.dirty) {
-      const go = await confirmBox('Your latest changes are not saved yet. Leave anyway?', { title: 'Unsaved changes', confirm: 'Leave', danger: true });
-      if (!go) return;
-    }
+// Before leaving a board: returns true when it is fine to go.
+async function resolveUnsaved() {
+  if (!(S.board && S.dirty && !S.conflict)) return true;
+  if (S.pauseAuto) {
+    const c = await choiceBox({ title: 'Autosave is paused', message: 'This board has unsaved changes.',
+      choices: [{ label: 'Cancel', value: 'cancel' }, { label: 'Discard changes', kind: 'danger', value: 'discard' }, { label: 'Save and leave', kind: 'primary', value: 'save' }] });
+    if (c === 'discard') { S.dirty = false; return true; }
+    if (c !== 'save') return false;
   }
+  const ok = await saveNow(true);
+  if (!ok && S.dirty) {
+    return await confirmBox('Your latest changes are not saved yet. Leave anyway?', { title: 'Unsaved changes', confirm: 'Leave', danger: true });
+  }
+  return true;
+}
+async function leaveBoard() {
+  if (!(await resolveUnsaved())) return;
   location.hash = '';
+}
+
+function togglePause() {
+  S.pauseAuto = !S.pauseAuto;
+  renderStatus();
+  toast(S.pauseAuto ? 'Autosave paused until you close this board or reload.' : 'Autosave resumed.');
 }
 
 function boardMenu(anchor) {
@@ -1302,6 +1490,9 @@ function boardMenu(anchor) {
     { divider: true },
     { label: 'Export board…', onClick: exportBoard },
     { label: 'Import into this board…', onClick: () => importFlow(false) },
+    { divider: true },
+    { label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause },
+    { label: 'Reset tier label width', onClick: resetLabelWidth },
     { divider: true },
     { label: 'Reset placements…', onClick: resetPlacements },
     { label: 'Delete board…', danger: true, onClick: () => deleteBoard(S.board.id, true) }
@@ -1612,6 +1803,8 @@ function editItem(id) {
   let zone = findZone(S.board, id);
   const preview = h('button', { class: 'item-prev', type: 'button', 'aria-label': 'Enlarge image' });
   const name = h('input', { class: 'field', type: 'text', value: orig.name, placeholder: 'Name (optional if there is an image)', maxlength: '120' });
+  const note = h('textarea', { class: 'field note-field', rows: '3', maxlength: String(NOTE_MAX), placeholder: 'Notes (optional). Shown when the image is enlarged.' });
+  note.value = orig.note || '';
   const err = h('p', { class: 'form-err', role: 'alert' });
   const removeImg = btn('Remove image', 'ghost sm', () => { st.img = null; st.link = null; paint(); });
   const zoneSel = h('select', { class: 'field', 'aria-label': 'Move to' },
@@ -1631,7 +1824,7 @@ function editItem(id) {
     err.textContent = '';
   }
   name.addEventListener('input', paint);
-  preview.addEventListener('click', () => { if (curUrl()) openViewer(id, { url: curUrl(), name: name.value }); });
+  preview.addEventListener('click', () => { if (curUrl()) openViewer(id, { url: curUrl(), name: name.value, note: note.value }); });
 
   const uploadBtn = btn('Upload image…', 'sm', async () => {
     const [f] = await pickFiles(false);
@@ -1652,7 +1845,7 @@ function editItem(id) {
     mutate(b => {
       const it = b.items[id];
       if (!it) return;
-      it.name = nm; it.img = st.img || null; it.link = st.img ? null : (st.link || null);
+      it.name = nm; it.note = note.value.trim(); it.img = st.img || null; it.link = st.img ? null : (st.link || null);
       if (zone !== findZone(b, id) && zoneList(b, zone)) { removeFromAll(b, id); zoneList(b, zone).push(id); }
     });
   };
@@ -1665,6 +1858,7 @@ function editItem(id) {
       h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, removeImg),
       h('label', { class: 'lbl' }, h('span', {}, 'Name'), name),
       h('label', { class: 'lbl' }, h('span', {}, 'Tier'), zoneSel),
+      h('label', { class: 'lbl' }, h('span', {}, 'Notes'), note),
       err),
     actions: [
       btn('Delete', 'danger', async () => {
@@ -1686,14 +1880,15 @@ function openViewer(startId, override) {
   let i = Math.max(0, order.indexOf(startId));
   const im = h('img', { class: 'viewer-img', alt: '', referrerpolicy: 'no-referrer' });
   const cap = h('div', { class: 'viewer-cap' });
+  const noteEl = h('div', { class: 'viewer-note' });
   const prev = h('button', { class: 'viewer-nav left', type: 'button', 'aria-label': 'Previous', onclick: e => { e.stopPropagation(); go(-1); } }, icon('left', 26));
   const next = h('button', { class: 'viewer-nav right', type: 'button', 'aria-label': 'Next', onclick: e => { e.stopPropagation(); go(1); } }, icon('right', 26));
   const close = h('button', { class: 'viewer-close', type: 'button', 'aria-label': 'Close', onclick: () => end() }, icon('x', 22));
-  const root = h('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true' }, close, prev, next, im, cap);
+  const root = h('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true' }, close, prev, next, im, cap, noteEl);
   function show() {
-    if (override) { im.src = override.url; cap.textContent = override.name || ''; prev.style.display = next.style.display = 'none'; return; }
+    if (override) { im.src = override.url; cap.textContent = override.name || ''; noteEl.textContent = override.note || ''; prev.style.display = next.style.display = 'none'; return; }
     const it = S.board.items[order[i]];
-    im.src = imgUrl(it) || ''; cap.textContent = it.name || '';
+    im.src = imgUrl(it) || ''; cap.textContent = it.name || ''; noteEl.textContent = it.note || '';
     prev.style.display = next.style.display = order.length > 1 ? '' : 'none';
   }
   function go(d) { if (!order.length) return; i = (i + d + order.length) % order.length; show(); }
@@ -1846,13 +2041,13 @@ async function exportBoard() {
         const rec = S.imgs.get(it.img);
         if (rec) image = await blobToDataURL(rec.blob); else missing++;
       }
-      items[id] = { name: it.name, image, link: it.link || null };
+      items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
       pb.set(++n, ids.length, 'Packed');
     }
     const data = {
       app: 'tierlist', version: 1, exportedAt: new Date().toISOString(),
       board: {
-        title: b.title, description: b.description, showNames: b.showNames, fit: b.fit,
+        title: b.title, description: b.description, showNames: S.view.names, fit: S.view.fit,
         tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
         pool: b.pool, items
       }
@@ -1877,7 +2072,8 @@ function parseExport(text) {
     items[k] = {
       name: String(v.name || '').slice(0, 120),
       image: typeof v.image === 'string' && /^data:image\//.test(v.image) ? v.image : null,
-      link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null
+      link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null,
+      note: String(v.note || '').trim().slice(0, NOTE_MAX)
     };
   }
   const used = new Set();
@@ -1910,7 +2106,6 @@ async function importAsNew(data, fallbackTitle) {
   const m = modal({ title: 'Importing board', body: pb.el, dismiss: false });
   try {
     const b = newBoard(data.title || fallbackTitle || 'Imported board', data.description);
-    b.showNames = data.showNames; b.fit = data.fit;
     b.tiers = []; b.pool = []; b.items = {};
     const idMap = {};
     const ids = Object.keys(data.items);
@@ -1921,8 +2116,11 @@ async function importAsNew(data, fallbackTitle) {
       pb.set(++n, ids.length, 'Processed');
       if (!src.name && !img && !src.link) continue;
       const id = uid(); idMap[old] = id;
-      b.items[id] = { id, name: src.name, img, link: img ? null : src.link };
+      b.items[id] = { id, name: src.name, img, link: img ? null : src.link, note: src.note };
     }
+    const views = lsGet('tl.views', {}) || {};
+    views[b.id] = { names: data.showNames, fit: data.fit };
+    lsSet('tl.views', views);
     for (const t of data.tiers) b.tiers.push({ id: uid(), name: t.name, color: t.color, items: t.items.map(i => idMap[i]).filter(Boolean) });
     b.pool = data.pool.map(i => idMap[i]).filter(Boolean);
     pb.set(ids.length, ids.length, 'Uploading');
@@ -1960,6 +2158,24 @@ async function importInto(data) {
     if (!c || c === 'cancel') return;
     overwrite = c === 'over';
   }
+  // Notes are kept when the import has none, and copied in when the board has none.
+  // Only when both have different notes does the person need to choose.
+  let useImportedNotes = false;
+  if (overwrite) {
+    const nDiff = Object.entries(matchOf).filter(([iid, ex]) => {
+      const a = (b.items[ex] && b.items[ex].note) || '', n = data.items[iid].note;
+      return a && n && a !== n;
+    }).length;
+    if (nDiff) {
+      const c = await choiceBox({
+        title: 'Notes differ',
+        message: `${nDiff} matching ${nDiff === 1 ? 'item has' : 'items have'} a different note on this board than in the file. Which notes do you want to keep?`,
+        choices: [{ label: 'Cancel', value: 'cancel' }, { label: 'Keep existing notes', value: 'keep' }, { label: 'Use imported notes', kind: 'primary', value: 'use' }]
+      });
+      if (!c || c === 'cancel') return;
+      useImportedNotes = c === 'use';
+    }
+  }
   const pb = progressBar();
   const m = modal({ title: 'Importing items', body: pb.el, dismiss: false });
   try {
@@ -1991,6 +2207,7 @@ async function importInto(data) {
           const it = bd.items[matchOf[p.iid]];
           if (!it) continue;
           it.name = src.name;
+          if (src.note && (!it.note || useImportedNotes)) it.note = src.note;
           if (prepared[p.iid]) { it.img = prepared[p.iid]; it.link = null; }
           else if (src.link) { it.img = null; it.link = src.link; }
           removeFromAll(bd, it.id);
@@ -2000,7 +2217,7 @@ async function importInto(data) {
           const img = prepared[p.iid];
           if (!src.name && !img && !src.link) { skipped++; continue; }
           const id = uid();
-          bd.items[id] = { id, name: src.name, img: img || null, link: img ? null : src.link };
+          bd.items[id] = { id, name: src.name, img: img || null, link: img ? null : src.link, note: src.note };
           place.push({ ...p, id });
           added++;
         }
@@ -2093,6 +2310,7 @@ function openSettings() {
     title: 'Settings',
     body: h('div', { class: 'stack lg' },
       h('div', { class: 'lbl' }, h('span', {}, 'Appearance'), theme),
+      h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour. GitHub allows about 500. Autosave slows down as this grows.`)),
       h('div', { class: 'lbl' }, h('span', {}, 'Repository'), h('p', { class: 'msg' }, S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected')),
       h('div', { class: 'row wrap' },
         btn('Change connection…', '', () => { m.close(); renderSetup(); }),
@@ -2113,7 +2331,7 @@ async function renderHome() {
   const list = h('div', { class: 'board-grid' });
   const top = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-in' },
-      h('h1', { class: 'brand' }, 'Tier lists'),
+      h('h1', { class: 'brand' }, 'Ranker'),
       h('div', { class: 'spacer' }),
       themeButton(),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', onclick: openSettings }, icon('gear'))));
@@ -2238,7 +2456,11 @@ function route() {
 async function doRoute() {
   if (!S.cfg) { renderSetup(); return; }
   const m = location.hash.match(/^#\/b\/([\w-]+)$/);
+  if (m && S.board && m[1] === S.board.id && $('#boardBody')) return; // already open
   if (S.board && (!m || m[1] !== S.board.id)) {
+    if (S.pauseAuto && S.dirty && !S.conflict) {
+      if (!(await resolveUnsaved())) { history.replaceState(null, '', '#/b/' + S.board.id); return; }
+    }
     if (S.dirty && !S.conflict) await saveNow(false);
     if (S.dirty && !S.conflict) toast('Your last changes could not be saved.');
   }
@@ -2279,12 +2501,12 @@ function boot() {
   applyTheme();
   document.addEventListener('keydown', onKeys);
   window.addEventListener('hashchange', route);
-  window.addEventListener('beforeunload', e => { if (S.board && S.dirty) { saveNow(false); e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('beforeunload', e => { if (S.board && S.dirty) { if (!S.pauseAuto) saveNow(false); e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (S.board && S.dirty) saveNow(false); }
+    if (document.hidden) { if (S.board && S.dirty && !S.pauseAuto) saveNow(false); }
     else checkRemote();
   });
-  window.addEventListener('pagehide', () => { if (S.board && S.dirty) saveNow(false); });
+  window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) saveNow(false); });
   window.addEventListener('focus', checkRemote);
   setInterval(tick, 2000);
   bindFileDrop();

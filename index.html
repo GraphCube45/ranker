@@ -92,6 +92,8 @@ button { cursor: pointer; }
 .status.busy .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
 .status .short { display: none; }
+button.status { border: 0; background: transparent; height: 36px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+button.status:hover { background: var(--fill); }
 @media (max-width: 520px) {
   .status .long { display: none; }
   .status .short { display: inline; }
@@ -217,6 +219,8 @@ textarea.field { resize: vertical; line-height: 1.4; }
 .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); }
 .fail-list { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13.5px; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 13px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--sep); }
 
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--sep); padding: 0; }
@@ -323,7 +327,9 @@ body.file-over::after { content: "Drop images to add them"; position: fixed; ins
 // 1.0.0  First release.
 // 1.1.0  Per-device view settings, notes, tier label width, pause autosave, Ranker name.
 // 1.2.0  Fewer GitHub writes, shared rate-limit protection, local drafts, item search, tier editor changes.
-const APP_VERSION = '1.2.0';
+// 1.3.0  Use without GitHub (boards kept in this browser), export all boards, storage meter, import space check,
+//        move local boards to GitHub, JPEG import fix, unique names for duplicated boards.
+const APP_VERSION = '1.3.0';
 const APP_BUILD = '2026-11-11';
 
 // ---------- Utilities ----------
@@ -442,6 +448,14 @@ function nameFromUrl(u) {
   } catch { return ''; }
 }
 const isImageFile = f => /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|avif|bmp|svg)$/i.test(f.name);
+function fmtBytes(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + ' B';
+  const u = ['KB', 'MB', 'GB', 'TB'];
+  let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+  return (n >= 100 ? n.toFixed(0) : n.toFixed(1)) + ' ' + u[i];
+}
 
 // ---------- State ----------
 class GHError extends Error {
@@ -453,6 +467,7 @@ class Conflict extends Error {
 
 const S = {
   cfg: null,
+  mode: null,        // 'github' (synced), 'local' (this browser only), or null (not chosen yet)
   // Device-only settings (saved in this browser, never synced): theme, tile size, tier label width.
   prefs: { theme: 'auto', size: null, labelEm: null },
   // Per-board, per-device view settings: names shown, image fit. Loaded when a board opens.
@@ -476,6 +491,11 @@ const S = {
   lastSaveEnd: 0, lastChange: 0, dirtySince: 0, backoffUntil: 0, lastCheck: 0,
   imgs: new Map(), imgFail: new Set(), imgLoading: Promise.resolve(), loadToken: 0
 };
+const isLocal = () => S.mode === 'local';
+function resetData() {
+  S.index = { boards: [], sha: null };
+  S.repo = { commit: null, files: new Map() };
+}
 
 // ---------- GitHub API ----------
 const API = 'https://api.github.com';
@@ -608,11 +628,18 @@ async function getTreeFiles(commitSha) {
   return { treeSha: c.tree.sha, files };
 }
 async function refreshRepo() {
+  if (isLocal()) { S.repo = { commit: 'local', files: await L.list() }; return; }
   const commit = await getHead();
   const { files } = await getTreeFiles(commit);
   S.repo = { commit, files };
 }
+// The current list of files (path to version token), from whichever place the boards live.
+async function repoFiles() {
+  if (isLocal()) return L.list();
+  return (await getTreeFiles(await getHead())).files;
+}
 async function getFile(path) {
+  if (isLocal()) return L.getFile(path);
   try {
     const r = await gh('GET', R(`/contents/${encPath(path)}?ref=${encodeURIComponent(S.cfg.branch)}`));
     let text;
@@ -641,9 +668,10 @@ async function putContent(path, b64, sha, message) {
     throw e;
   }
 }
-const putFile = (path, text, sha, message) => putContent(path, b64FromText(text), sha, message);
+const putFile = (path, text, sha, message) => (isLocal() ? L.putText(path, text, sha) : putContent(path, b64FromText(text), sha, message));
 // A new image file. If it already exists, an earlier attempt got through, which is fine.
 async function putImage(path, blob, message) {
+  if (isLocal()) return L.putBlob(path, blob);
   const b64 = await blobToB64(blob);
   try { return await putContent(path, b64, null, message); }
   catch (e) {
@@ -667,6 +695,11 @@ async function createBlob(u) {
 // plan(files) receives the freshly fetched file list and returns { upload, copy, remove }.
 // The ref update is never forced: if the branch moved, GitHub refuses it and the plan runs again.
 async function commitFiles(message, plan) {
+  if (isLocal()) {
+    const r = await L.commit(plan);
+    S.repo = { commit: r.commit, files: r.files };
+    return r;
+  }
   const uploaded = new Map();
   for (let attempt = 0; attempt < 3; attempt++) {
     const head = await getHead();
@@ -733,7 +766,7 @@ async function loadIndex() {
 function friendlyError(e) {
   if (!e) return '';
   if (e.status === 401) return 'GitHub rejected the token. It might have expired. Reconnect in Settings.';
-  if (e.budget || e.local) return e.message;
+  if (e.budget || e.local || e.quota) return e.message;
   if (e.status === 403 && e.limited) return 'GitHub is limiting requests. The app will retry shortly.';
   if (e.status === 403) return 'The token can’t write to this repository. It needs Contents: Read and write.';
   if (e.status === 404) return 'Repository not found, or the token has no access to it.';
@@ -745,6 +778,7 @@ function friendlyError(e) {
 // This costs no GitHub requests, so autosave can wait without risking your work. If the tab closes,
 // crashes, or the phone reclaims it, the draft is restored the next time you open the board.
 // It is a safety copy, not a second source of truth: GitHub stays the one place boards live.
+// (Not used when boards are stored locally: those saves are instant and free.)
 const DRAFT_DB = 'ranker', DRAFT_VER = 1;
 let draftDbPromise = null;
 let draftTimer = null;
@@ -822,7 +856,7 @@ async function readDraft(id) {
 
 // Write the draft shortly after changes stop. Called whenever the board changes.
 function scheduleDraft() {
-  if (!S.draftOk || !S.board) return;
+  if (!S.draftOk || !S.board || isLocal()) return;
   S.draftDirty = !!S.dirty && !S.pauseAuto;
   clearTimeout(draftTimer);
   draftTimer = setTimeout(flushDraft, 500);
@@ -861,6 +895,232 @@ async function restoreDraft(remoteSha) {
   recomputeDirty();
   S.dirtySince = Date.now(); S.lastChange = Date.now();
   toast('Restored unsaved changes from this device');
+}
+
+// ---------- Local storage (use without GitHub) ----------
+// Without GitHub, boards live in this browser's IndexedDB. The layout mirrors the data repository, so the
+// rest of the app doesn't care where files are:
+//  - 'files' has one record per path (index.json, boards/<id>/board.json, boards/<id>/img/<file>).
+//    Each record has a random version token (sha) that changes on every write, and text files keep their text.
+//  - 'blobs' has image bytes, keyed by token. Duplicating a board adds new paths that point at the same
+//    token, as Git does, so a duplicate costs no extra image storage.
+// Writes that belong together run in one transaction. A full disk or a closed tab can't leave half a board.
+const LOCAL_DB = 'ranker-local';
+let localDbP = null;
+const lsha = () => 'l' + uid() + uid();
+const idbReq = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+
+function openLocalDb() {
+  if (!localDbP) {
+    localDbP = new Promise((res, rej) => {
+      try {
+        if (!window.indexedDB) throw new Error('This browser can’t store boards on this device.');
+        const r = indexedDB.open(LOCAL_DB, 1);
+        r.onupgradeneeded = () => {
+          const db = r.result;
+          db.createObjectStore('files', { keyPath: 'path' });
+          db.createObjectStore('blobs', { keyPath: 'sha' });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error || new Error('Could not open storage on this device.'));
+        r.onblocked = () => rej(new Error('Storage on this device is blocked by another tab. Close other Ranker tabs and try again.'));
+      } catch (e) { rej(e); }
+    }).catch(e => { localDbP = null; throw e; });
+  }
+  return localDbP;
+}
+function localError(e) {
+  if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+    return new GHError(0, 'This browser has no storage space left for this site. Export your boards, delete boards or items you no longer need, or connect GitHub, then try again.', { quota: true });
+  }
+  return e;
+}
+// Remove image bytes that no file points at any more.
+async function gcBlobs(f, b) {
+  const used = new Set((await idbReq(f.getAll())).map(r => r.sha));
+  for (const k of await idbReq(b.getAllKeys())) if (!used.has(k)) await idbReq(b.delete(k));
+}
+async function readIndexIn(f) {
+  const ix = await idbReq(f.get('index.json'));
+  const idx = ix ? JSON.parse(ix.text) : { v: 1, boards: [] };
+  if (!Array.isArray(idx.boards)) idx.boards = [];
+  return idx;
+}
+function setMeta(idx, id, meta) {
+  const x = idx.boards.find(y => y.id === id);
+  if (x) Object.assign(x, meta); else idx.boards.push({ id, ...meta });
+}
+
+const L = {
+  // Runs fn inside one transaction. fn may await only IndexedDB requests.
+  async tx(stores, mode, fn) {
+    const db = await openLocalDb();
+    let t;
+    try { t = db.transaction(stores, mode); } catch (e) { throw localError(e); }
+    const done = idbDone(t);
+    done.catch(() => {});
+    let out;
+    try { out = await fn(...stores.map(s => t.objectStore(s))); }
+    catch (e) { try { t.abort(); } catch { /* already finished */ } throw localError(e); }
+    try { await done; } catch (e) { throw localError(e); }
+    return out;
+  },
+  list() {
+    return L.tx(['files'], 'readonly', async f => new Map((await idbReq(f.getAll())).map(r => [r.path, r.sha])));
+  },
+  getFile(path) {
+    return L.tx(['files'], 'readonly', async f => {
+      const r = await idbReq(f.get(path));
+      return r && typeof r.text === 'string' ? { text: r.text, sha: r.sha } : null;
+    });
+  },
+  getBlob(sha) {
+    return L.tx(['blobs'], 'readonly', async b => { const r = await idbReq(b.get(sha)); return r ? r.blob : null; });
+  },
+  async readIndex() {
+    const f = await L.getFile('index.json');
+    const idx = f ? JSON.parse(f.text) : { v: 1, boards: [] };
+    if (!Array.isArray(idx.boards)) idx.boards = [];
+    return idx;
+  },
+  // Same rule as GitHub: the write only works if the file is still at the version the caller saw.
+  putText(path, text, sha) {
+    return L.tx(['files'], 'readwrite', async f => {
+      const cur = await idbReq(f.get(path));
+      if ((cur ? cur.sha : null) !== (sha || null)) throw new Conflict();
+      const n = lsha();
+      await idbReq(f.put({ path, sha: n, text }));
+      return { sha: n, commit: n };
+    });
+  },
+  putBlob(path, blob) {
+    return L.tx(['files', 'blobs'], 'readwrite', async (f, b) => {
+      const cur = await idbReq(f.get(path));
+      if (cur) return { sha: cur.sha, commit: 'local' };
+      const sha = lsha();
+      await idbReq(b.put({ sha, blob }));
+      await idbReq(f.put({ path, sha }));
+      return { sha, commit: 'local' };
+    });
+  },
+  // Same plan format as commitFiles: { upload, copy, remove }, applied atomically.
+  commit(plan) {
+    return L.tx(['files', 'blobs'], 'readwrite', async (f, b) => {
+      const files = new Map((await idbReq(f.getAll())).map(r => [r.path, r.sha]));
+      const p = plan(files);
+      for (const u of p.upload || []) {
+        const sha = lsha();
+        if (u.blob) { await idbReq(b.put({ sha, blob: u.blob })); await idbReq(f.put({ path: u.path, sha })); }
+        else await idbReq(f.put({ path: u.path, sha, text: u.text }));
+        files.set(u.path, sha);
+      }
+      for (const c of p.copy || []) { await idbReq(f.put({ path: c.path, sha: c.sha })); files.set(c.path, c.sha); }
+      let removed = false;
+      for (const path of p.remove || []) if (files.has(path)) { await idbReq(f.delete(path)); files.delete(path); removed = true; }
+      if (removed) await gcBlobs(f, b);
+      return { files, commit: 'local' };
+    });
+  },
+  // Remove a board, its images, and its entry in the board list.
+  dropBoard(id) {
+    const dir = `boards/${id}/`;
+    return L.tx(['files', 'blobs'], 'readwrite', async (f, b) => {
+      for (const k of await idbReq(f.getAllKeys(IDBKeyRange.bound(dir, dir + '\uffff')))) await idbReq(f.delete(k));
+      const idx = await readIndexIn(f);
+      idx.boards = idx.boards.filter(x => x.id !== id);
+      await idbReq(f.put({ path: 'index.json', sha: lsha(), text: JSON.stringify(idx, null, 2) }));
+      await gcBlobs(f, b);
+    });
+  }
+};
+
+// Save a board: images, board.json, its list entry, and the removal of unused images, all in one transaction.
+async function doSaveLocal(b, text) {
+  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b), meta = boardMeta(b);
+  const range = IDBKeyRange.bound(dir, dir + '\uffff');
+  const r = await L.tx(['files', 'blobs'], 'readwrite', async (f, bl) => {
+    const cur = await idbReq(f.get(bp));
+    if ((cur ? cur.sha : null) !== (S.boardSha || null)) throw new Conflict();
+    const have = new Map((await idbReq(f.getAll(range))).map(x => [x.path, x.sha]));
+    const added = new Map(), removed = [];
+    for (const name of refd) {
+      const p = dir + name;
+      if (have.has(p) || !S.imgs.has(name)) continue;
+      const sha = lsha();
+      await idbReq(bl.put({ sha, blob: S.imgs.get(name).blob }));
+      await idbReq(f.put({ path: p, sha }));
+      added.set(p, sha);
+    }
+    for (const p of have.keys()) if (!refd.has(p.slice(dir.length))) { await idbReq(f.delete(p)); removed.push(p); }
+    const sha = lsha();
+    await idbReq(f.put({ path: bp, sha, text }));
+    const idx = await readIndexIn(f);
+    setMeta(idx, b.id, meta);
+    await idbReq(f.put({ path: 'index.json', sha: lsha(), text: JSON.stringify(idx, null, 2) }));
+    if (removed.length) await gcBlobs(f, bl);
+    return { sha, added, removed, idx };
+  });
+  S.boardSha = r.sha;
+  S.repo.files.set(bp, r.sha);
+  for (const [p, s] of r.added) S.repo.files.set(p, s);
+  for (const p of r.removed) S.repo.files.delete(p);
+  S.repo.commit = 'local';
+  S.index = { boards: r.idx.boards, sha: 'local' };
+}
+// Create a board with all its images in one transaction. If space runs out, nothing is added.
+async function localCreateBoard(b) {
+  const bp = boardPath(b.id), dir = imgDir(b.id), meta = boardMeta(b);
+  const idx = await L.tx(['files', 'blobs'], 'readwrite', async (f, bl) => {
+    for (const name of referencedImages(b)) {
+      const rec = S.imgs.get(name);
+      if (!rec) continue;
+      const sha = lsha();
+      await idbReq(bl.put({ sha, blob: rec.blob }));
+      await idbReq(f.put({ path: dir + name, sha }));
+    }
+    await idbReq(f.put({ path: bp, sha: lsha(), text: ser(b, 2) }));
+    const ix = await readIndexIn(f);
+    setMeta(ix, b.id, meta);
+    await idbReq(f.put({ path: 'index.json', sha: lsha(), text: JSON.stringify(ix, null, 2) }));
+    return ix;
+  });
+  S.index = { boards: idx.boards, sha: 'local' };
+}
+
+// Browser storage: usage, quota, and protection from automatic cleanup. The numbers are estimates.
+async function storageEstimate() {
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      if (e && e.quota) return { usage: e.usage || 0, quota: e.quota };
+    }
+  } catch { /* unsupported */ }
+  return null;
+}
+async function persistState() {
+  try { if (navigator.storage && navigator.storage.persisted) return await navigator.storage.persisted(); } catch { /* unsupported */ }
+  return null;
+}
+async function requestPersist() {
+  try {
+    if (navigator.storage && navigator.storage.persist) return (await navigator.storage.persisted()) || (await navigator.storage.persist());
+  } catch { /* unsupported */ }
+  return false;
+}
+// Before an import into local storage: warn when it might not fit. Returns true to go ahead.
+async function confirmRoom(bytes) {
+  if (!isLocal()) return true;
+  const e = await storageEstimate();
+  if (!e) return true;
+  const free = Math.max(0, e.quota - e.usage);
+  if (bytes <= free * 0.8) return true;
+  const over = bytes > free;
+  const c = await choiceBox({
+    title: over ? 'Not enough storage' : 'Storage is almost full',
+    message: `This import needs about ${fmtBytes(bytes)}, and this browser has about ${fmtBytes(free)} left for this site. ${over ? 'It will probably not fit.' : 'It might not fit.'} A board that doesn’t fit is not added. To make room, export a backup and delete boards you no longer need, or connect GitHub.`,
+    choices: [{ label: 'Cancel', value: 'no' }, { label: 'Try anyway', kind: 'primary', value: 'yes' }]
+  });
+  return c === 'yes';
 }
 
 // ---------- Board model ----------
@@ -1010,6 +1270,7 @@ const metaKey = m => JSON.stringify([m.title, m.description || '', m.colors || [
 // Cost of a save: one write for board.json, plus one per image that is not on GitHub yet.
 // Nothing else is written here. The board list and unused images are tidied later (flushHousekeeping).
 async function doSave(b, text) {
+  if (isLocal()) return doSaveLocal(b, text);
   const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b);
   const message = `Update ${b.title || 'board'}`;
   const missing = [...refd].filter(f => !S.repo.files.has(dir + f) && S.imgs.has(f));
@@ -1047,8 +1308,9 @@ async function syncIndexEntry(b) {
 //  1. The board's card in index.json (title, item count, tier colors).
 //  2. Image files that no saved or current version of the board uses any more.
 // Both are done together, at most once per editing burst: when the board is closed, or after 2 minutes without edits.
+// (Local storage does both inside every save, because its writes are free.)
 function housekeepingPlan() {
-  if (!S.board) return null;
+  if (!S.board || isLocal()) return null;
   let saved;
   try { saved = parseBoard(S.lastSavedJson); } catch { return null; }
   const id = S.board.id, dir = imgDir(id);
@@ -1059,7 +1321,7 @@ function housekeepingPlan() {
   return { id, title: saved.title, meta, orphans, metaChanged: !entry || metaKey(entry) !== metaKey(meta) };
 }
 async function flushHousekeeping() {
-  if (S.hkRunning || S.saving || S.conflict || !S.board || S.pauseAuto) return false;
+  if (S.hkRunning || S.saving || S.conflict || !S.board || S.pauseAuto || isLocal()) return false;
   const plan = housekeepingPlan();
   if (!plan || (!plan.metaChanged && !plan.orphans.length)) return false;
   if (writesLastHour() >= AUTO_CAP || backoffLeftMs() > 0) return false;
@@ -1112,13 +1374,16 @@ async function flushHousekeeping() {
 // continuous editing, and never sooner than 10 seconds after the previous save finished.
 // As this browser's hourly write count grows, the gap widens, and autosave stops at AUTO_CAP.
 // Changes also stay in a local draft (IndexedDB), so waiting costs nothing but GitHub freshness.
+// Local storage has no write limits, so it saves 1.2 seconds after the last edit (at most 10 seconds into continuous editing).
 const QUIET_MS = 8000, MAX_WAIT_MS = 60000;
 function minGapMs() {
+  if (isLocal()) return 0;
   const n = writesLastHour();
   return n < 60 ? 10000 : n < 120 ? 30000 : n < 180 ? 90000 : 300000;
 }
 // Why autosave must wait, or null.
 function autosaveHold() {
+  if (isLocal()) return null;
   if (backoffLeftMs() > 0) return 'backoff';
   if (writesLastHour() >= AUTO_CAP) return 'budget';
   const rem = rateRemaining();
@@ -1144,7 +1409,8 @@ function tick(hiding) {
   }
   S.limitNotified = false;
   if (now - S.lastSaveEnd < minGapMs()) return;
-  if (!hiding && now - S.lastChange < QUIET_MS && now - S.dirtySince < MAX_WAIT_MS) return;
+  const quiet = isLocal() ? 1200 : QUIET_MS, maxWait = isLocal() ? 10000 : MAX_WAIT_MS;
+  if (!hiding && now - S.lastChange < quiet && now - S.dirtySince < maxWait) return;
   saveNow(false);
 }
 
@@ -1165,10 +1431,10 @@ function showConflict() {
   if (!S.conflict) return;
   const gone = !S.conflict.remote;
   const m = modal({
-    title: gone ? 'Board was deleted elsewhere' : 'Changed on another device',
+    title: gone ? 'Board was deleted elsewhere' : (isLocal() ? 'Changed in another tab' : 'Changed on another device'),
     body: h('p', { class: 'msg' }, gone
-      ? 'This board no longer exists on GitHub. You can save your version again, or discard it.'
-      : 'This board was saved from another device after you opened it. Choose which version to keep.'),
+      ? 'This board no longer exists ' + (isLocal() ? 'on this device' : 'on GitHub') + '. You can save your version again, or discard it.'
+      : 'This board was saved from ' + (isLocal() ? 'another tab or window' : 'another device') + ' after you opened it. Choose which version to keep.'),
     dismiss: false,
     actions: [
       btn('Decide later', '', () => m.close()),
@@ -1213,7 +1479,7 @@ function loadImg(url) {
 function canvasToBlob(c, type, q) { return new Promise(res => c.toBlob(res, type, q)); }
 
 // WebP at or under 800 px is kept unchanged. Everything else becomes WebP, at most 800 px.
-// Browsers that can't encode WebP (some Safari versions) fall back to JPEG.
+// Browsers that can't encode WebP (some Safari versions) keep a small JPEG unchanged and re-encode anything else as JPEG.
 async function processImage(blob) {
   const url = URL.createObjectURL(blob);
   try {
@@ -1237,6 +1503,9 @@ async function processImage(blob) {
     ctx.drawImage(src, 0, 0, tw, th);
     let out = await canvasToBlob(canvas, 'image/webp', 0.85);
     if (out && out.type === 'image/webp') return { blob: out, ext: 'webp' };
+    // This browser can't encode WebP. A JPEG that is already small enough stays as it is,
+    // so it isn't compressed a second time and its bytes stay identical.
+    if (blob.type === 'image/jpeg' && Math.max(w, h2) <= MAX_DIM) return { blob, ext: 'jpg' };
     const c2 = document.createElement('canvas');
     c2.width = tw; c2.height = th;
     const x2 = c2.getContext('2d');
@@ -1271,7 +1540,7 @@ async function fetchFromUrl(raw) {
   return { blob, url: u };
 }
 
-// ---------- Loading board images from GitHub ----------
+// ---------- Loading board images ----------
 async function fetchBlobCached(sha, name) {
   const key = '/__tl/' + sha;
   try {
@@ -1300,9 +1569,10 @@ function startImageLoad() {
       const sha = S.repo.files.get(dir + f);
       if (!sha) { S.imgFail.add(f); onImageReady(f); continue; }
       try {
-        const blob = await fetchBlobCached(sha, f);
+        const blob = isLocal() ? await L.getBlob(sha) : await fetchBlobCached(sha, f);
         if (token !== S.loadToken) return;
-        S.imgs.set(f, { blob, url: URL.createObjectURL(blob) });
+        if (blob) S.imgs.set(f, { blob, url: URL.createObjectURL(blob) });
+        else S.imgFail.add(f);
       } catch (e) {
         S.imgFail.add(f);
         if (e.limited) { queue.length = 0; toast('GitHub is limiting requests. Some images did not load. Reload in a minute.'); }
@@ -1490,14 +1760,15 @@ function tileEl(id) {
 }
 
 // Names and image fit are per board and per device. They live in this browser only.
-function loadView(b) {
+function viewOf(b) {
   const v = (lsGet('tl.views', {}) || {})[b.id] || {};
   const lg = b.legacy || {};
-  S.view = {
+  return {
     names: typeof v.names === 'boolean' ? v.names : lg.names !== false,
     fit: v.fit === 'fit' || v.fit === 'fill' ? v.fit : (lg.fit || 'fill')
   };
 }
+function loadView(b) { S.view = viewOf(b); }
 function setView(patch) {
   Object.assign(S.view, patch);
   const all = lsGet('tl.views', {}) || {};
@@ -1656,10 +1927,12 @@ function renderStatus() {
   else if (S.err) { cls = 'err'; text = 'Couldn’t save'; short = 'Error'; }
   else if (S.pauseAuto) { cls = 'warn'; text = S.dirty ? 'Paused, unsaved changes' : 'Autosave paused'; short = 'Paused'; }
   else if (S.dirty) { cls = 'warn'; text = 'Unsaved changes'; short = 'Unsaved'; }
+  // Boards kept only in this browser always show an amber dot: saved, but not backed up anywhere else.
+  if (isLocal() && cls === 'ok') { cls = 'warn'; text = 'Saved locally'; short = 'Local'; }
   el.className = 'status ' + cls;
   el.replaceChildren(h('i', { class: 'dot' }), h('span', { class: 'long' }, text), h('span', { class: 'short' }, short));
-  el.title = S.err ? friendlyError(S.err) : (S.savedAt ? 'Last saved ' + S.savedAt.toLocaleTimeString() : '');
-  el.onclick = S.conflict ? showConflict : (S.err ? () => saveNow(true) : null);
+  el.title = S.err ? friendlyError(S.err) : (isLocal() ? 'Stored only in this browser. Select for details.' : (S.savedAt ? 'Last saved ' + S.savedAt.toLocaleTimeString() : ''));
+  el.onclick = S.conflict ? showConflict : (S.err ? () => saveNow(true) : (isLocal() ? showLocalInfo : null));
   el.style.cursor = el.onclick ? 'pointer' : 'default';
   if (sb) sb.disabled = S.saving || (!S.dirty && !S.err && !S.conflict);
 }
@@ -1786,8 +2059,7 @@ function boardMenu(anchor) {
     { label: 'Export board', onClick: exportBoard },
     { label: 'Import into this board…', onClick: () => importFlow(false) },
     { divider: true },
-    { label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause },
-    { divider: true },
+    ...(isLocal() ? [] : [{ label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause }, { divider: true }]),
     { label: 'Reset placements', onClick: resetPlacements },
     { label: 'Delete board', danger: true, onClick: () => deleteBoard(S.board.id, true) }
   ]);
@@ -2316,13 +2588,39 @@ function bindFileDrop() {
 }
 
 // ---------- Export and import ----------
-function download(text, filename) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+// download() takes text or a Blob.
+function download(data, filename) {
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: 'application/json' }));
   const a = h('a', { href: url, download: filename, style: { display: 'none' } });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// The export form of one board. blobOf(file) returns the image bytes, or null if they aren't available.
+async function packBoard(b, view, blobOf, onItem) {
+  const ids = Object.keys(b.items);
+  const items = {};
+  let missing = 0, n = 0;
+  for (const id of ids) {
+    const it = b.items[id];
+    let image = null;
+    if (it.img) {
+      const blob = await blobOf(it.img);
+      if (blob) image = await blobToDataURL(blob); else missing++;
+    }
+    items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
+    if (onItem) onItem(++n, ids.length);
+  }
+  return {
+    missing,
+    board: {
+      title: b.title, description: b.description, showNames: view.names, fit: view.fit,
+      tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
+      pool: b.pool, items
+    }
+  };
 }
 
 async function exportBoard() {
@@ -2331,27 +2629,8 @@ async function exportBoard() {
   const m = modal({ title: 'Preparing export', body: pb.el, dismiss: false });
   try {
     await S.imgLoading;
-    const ids = Object.keys(b.items);
-    const items = {};
-    let missing = 0, n = 0;
-    for (const id of ids) {
-      const it = b.items[id];
-      let image = null;
-      if (it.img) {
-        const rec = S.imgs.get(it.img);
-        if (rec) image = await blobToDataURL(rec.blob); else missing++;
-      }
-      items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
-      pb.set(++n, ids.length, 'Packed');
-    }
-    const data = {
-      app: 'tierlist', version: 1, exportedAt: new Date().toISOString(),
-      board: {
-        title: b.title, description: b.description, showNames: S.view.names, fit: S.view.fit,
-        tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
-        pool: b.pool, items
-      }
-    };
+    const { board, missing } = await packBoard(b, S.view, async f => (S.imgs.get(f) || {}).blob, (n, t) => pb.set(n, t, 'Packed'));
+    const data = { app: 'tierlist', version: 1, exportedAt: new Date().toISOString(), board };
     download(JSON.stringify(data), `${slug(b.title)}.tierlist.json`);
     m.close();
     toast(missing ? `Exported. ${missing} ${missing === 1 ? 'image was' : 'images were'} not loaded and left out.` : 'Export downloaded');
@@ -2361,10 +2640,60 @@ async function exportBoard() {
   }
 }
 
-function parseExport(text) {
-  let o;
-  try { o = JSON.parse(text); } catch { throw new Error('This file is not a valid tier list export.'); }
-  const bd = o && o.app === 'tierlist' && o.board;
+// Back up every board stored on this device. Large libraries are split into files of about 100 MB,
+// because each file is read into memory when it is imported.
+async function exportAll() {
+  if (S.board && S.dirty && !(await saveNow(true))) return;
+  const pb = progressBar();
+  const m = modal({ title: 'Preparing backup', body: pb.el, dismiss: false });
+  try {
+    const idx = await L.readIndex();
+    const files = await L.list();
+    const total = idx.boards.length;
+    if (!total) { m.close(); toast('There are no boards to export.'); return; }
+    const PART_MAX = 100 * 1024 * 1024;
+    const exportedAt = JSON.stringify(new Date().toISOString());
+    const parts = [];
+    let cur = [], size = 0, missing = 0, done = 0, count = 0;
+    const flush = () => {
+      if (!cur.length) return;
+      const seq = [`{"app":"tierlist","version":1,"exportedAt":${exportedAt},"boards":[`];
+      cur.forEach((bl, i) => { if (i) seq.push(','); seq.push(bl); });
+      seq.push(']}');
+      parts.push(new Blob(seq, { type: 'application/json' }));
+      cur = []; size = 0;
+    };
+    pb.set(0, total, 'Packed');
+    for (const e of idx.boards) {
+      const f = await L.getFile(boardPath(e.id));
+      if (f) {
+        const b = parseBoard(f.text); b.id = e.id;
+        const dir = imgDir(b.id);
+        const r = await packBoard(b, viewOf(b), async name => { const sha = files.get(dir + name); return sha ? L.getBlob(sha) : null; });
+        missing += r.missing;
+        const blob = new Blob([JSON.stringify(r.board)]);
+        if (cur.length && size + blob.size > PART_MAX) flush();
+        cur.push(blob); size += blob.size; count++;
+      }
+      pb.set(++done, total, 'Packed');
+    }
+    flush();
+    m.close();
+    if (!parts.length) { toast('There are no boards to export.'); return; }
+    const stamp = new Date().toISOString().slice(0, 10);
+    for (let i = 0; i < parts.length; i++) {
+      download(parts[i], parts.length > 1 ? `ranker-backup-${stamp}-${i + 1}-of-${parts.length}.tierlist.json` : `ranker-backup-${stamp}.tierlist.json`);
+      if (i < parts.length - 1) await sleep(500);
+    }
+    lsSet('tl.lastBackup', Date.now());
+    toast(`Exported ${count} ${count === 1 ? 'board' : 'boards'}${parts.length > 1 ? ` in ${parts.length} files` : ''}${missing ? `. ${missing} ${missing === 1 ? 'image was' : 'images were'} missing and left out` : ''}`, { ms: 6000 });
+  } catch (e) {
+    m.close();
+    toast('Export failed: ' + friendlyError(e));
+  }
+}
+
+function parseExportBoard(bd) {
   if (!bd || typeof bd.items !== 'object' || !bd.items) throw new Error('This file is not a tier list export.');
   const items = {};
   for (const [k, v] of Object.entries(bd.items)) {
@@ -2383,6 +2712,15 @@ function parseExport(text) {
   for (const id of Object.keys(items)) if (!used.has(id)) pool.push(id);
   return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), showNames: bd.showNames !== false, fit: bd.fit === 'fit' ? 'fit' : 'fill', tiers, pool, items };
 }
+// A file holds one board (Export board) or several (Export all boards). Returns a list either way.
+function parseExportAll(text) {
+  let o;
+  try { o = JSON.parse(text); } catch { throw new Error('This file is not a valid tier list export.'); }
+  if (!o || o.app !== 'tierlist') throw new Error('This file is not a tier list export.');
+  const list = Array.isArray(o.boards) ? o.boards : (o.board ? [o.board] : null);
+  if (!list || !list.length) throw new Error('This file is not a tier list export.');
+  return list.map(parseExportBoard);
+}
 
 async function importedImage(it) {
   if (!it.image) return null;
@@ -2394,26 +2732,28 @@ async function importedImage(it) {
 async function importFlow(asNew) {
   const [file] = await pickFiles(false, '.json,application/json');
   if (!file) return;
-  if (file.size > 150 * 1024 * 1024) { toast('That file is too large.'); return; }
-  let data;
-  try { data = parseExport(await file.text()); } catch (e) { toast(e.message); return; }
-  if (asNew) await importAsNew(data, file.name.replace(/\.tierlist\.json$|\.json$/i, ''));
-  else await importInto(data);
+  if (file.size > 150 * 1024 * 1024) { toast('That file is too large. Import files up to 150 MB.'); return; }
+  let list;
+  try { list = parseExportAll(await file.text()); } catch (e) { toast(e.message); return; }
+  if (!asNew && list.length !== 1) { toast(`This file has ${list.length} boards. Use Import boards on the board list instead.`); return; }
+  // Decoded images take about three quarters of the file's size.
+  if (!(await confirmRoom(file.size * 0.75))) return;
+  if (asNew) await importAsNew(list, file.name.replace(/\.tierlist\.json$|\.json$/i, ''));
+  else await importInto(list[0]);
 }
 
-async function importAsNew(data, fallbackTitle) {
-  const pb = progressBar();
-  const m = modal({ title: 'Importing board', body: pb.el, dismiss: false });
+// Create one board from export data. Returns its id.
+async function importOneBoard(data, fallbackTitle, label, pb) {
+  const b = newBoard(data.title || fallbackTitle || 'Imported board', data.description);
+  b.tiers = []; b.pool = []; b.items = {};
   try {
-    const b = newBoard(data.title || fallbackTitle || 'Imported board', data.description);
-    b.tiers = []; b.pool = []; b.items = {};
     const idMap = {};
     const ids = Object.keys(data.items);
     let n = 0;
     for (const old of ids) {
       const src = data.items[old];
       const img = await importedImage(src);
-      pb.set(++n, ids.length, 'Processed');
+      pb.set(++n, ids.length, label + 'Processed');
       if (!src.name && !img && !src.link) continue;
       const id = uid(); idMap[old] = id;
       b.items[id] = { id, name: src.name, img, link: img ? null : src.link, note: src.note };
@@ -2423,13 +2763,32 @@ async function importAsNew(data, fallbackTitle) {
     lsSet('tl.views', views);
     for (const t of data.tiers) b.tiers.push({ id: uid(), name: t.name, color: t.color, items: t.items.map(i => idMap[i]).filter(Boolean) });
     b.pool = data.pool.map(i => idMap[i]).filter(Boolean);
-    pb.set(ids.length, ids.length, 'Uploading');
+    pb.set(ids.length, ids.length, label + 'Uploading');
     await createBoardRemote(b);
+    return b.id;
+  } finally {
+    // Free the images held in memory for this board.
+    for (const f of referencedImages(b)) { const r = S.imgs.get(f); if (r) { URL.revokeObjectURL(r.url); S.imgs.delete(f); } }
+  }
+}
+
+async function importAsNew(list, fallbackTitle) {
+  const multi = list.length > 1;
+  const pb = progressBar();
+  const m = modal({ title: multi ? 'Importing boards' : 'Importing board', body: pb.el, dismiss: false });
+  let last = null, done = 0;
+  try {
+    for (const data of list) {
+      last = await importOneBoard(data, multi ? '' : fallbackTitle, multi ? `Board ${done + 1} of ${list.length}: ` : '', pb);
+      done++;
+    }
     m.close();
-    location.hash = '#/b/' + b.id;
+    if (multi) { toast(`Imported ${done} boards`); refreshHome(); }
+    else location.hash = '#/b/' + last;
   } catch (e) {
     m.close();
-    toast('Import failed: ' + friendlyError(e));
+    toast((done ? `Imported ${done} of ${list.length}. ` : '') + 'Import failed: ' + friendlyError(e), { ms: 7000 });
+    if (done) refreshHome();
   }
 }
 
@@ -2548,11 +2907,13 @@ function renderFatal(e) {
       h('p', { class: 'msg' }, friendlyError(e)),
       h('div', { class: 'row wrap' },
         btn('Try again', 'primary', () => route()),
-        auth ? btn('Reconnect', '', () => renderSetup()) : null))));
+        auth && !isLocal() ? btn('Reconnect', '', () => renderSetup()) : null))));
 }
 
+// First screen, and the screen for connecting GitHub later. New visitors can also continue without sync.
 function renderSetup(msg) {
   const cfg = S.cfg || {};
+  const local = isLocal();
   const repo = h('input', { class: 'field', type: 'text', placeholder: 'your-username/tierlist-data', value: cfg.owner ? `${cfg.owner}/${cfg.repo}` : '', autocapitalize: 'none', autocomplete: 'off', spellcheck: 'false' });
   const token = h('input', { class: 'field', type: 'password', placeholder: 'github_pat_…', autocomplete: 'off', spellcheck: 'false' });
   const err = h('p', { class: 'form-err', role: 'alert' }, msg || '');
@@ -2565,23 +2926,45 @@ function renderSetup(msg) {
     go.disabled = true; go.textContent = 'Connecting…';
     try {
       const next = await verifyConnection(m[1], m[2], tk);
+      const wasLocal = isLocal();
       S.cfg = next; lsSet('tl.cfg', next);
-      route();
+      S.mode = 'github'; lsDel('tl.mode');
+      resetData();
+      await route();
+      if (wasLocal) offerMoveLocal();
     } catch (e) {
       err.textContent = friendlyError(e);
       go.disabled = false; go.textContent = 'Connect';
     }
   });
   token.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
+  const guest = (!S.cfg && !local) ? [
+    h('div', { class: 'or', 'aria-hidden': 'true' }, h('span', {}, 'or')),
+    h('div', { class: 'stack' },
+      h('h2', { class: 'sub' }, 'Use without sync'),
+      h('p', { class: 'hint' }, 'Boards are saved only in this browser and don’t sync between devices. Clearing browser data deletes them, so export backups regularly. You can connect GitHub later and move your boards there.'),
+      h('div', { class: 'row' }, btn('Continue without sync', '', () => chooseLocal(err))))
+  ] : [];
   $('#app').replaceChildren(h('div', { class: 'center-screen' },
     h('div', { class: 'card narrow stack lg' },
       h('div', { class: 'stack' },
         h('h1', { class: 'h1' }, 'Connect to GitHub'),
-        h('p', { class: 'msg' }, 'Your boards are saved in a private GitHub repository. Enter its name and an access token with read and write access to that repository. The token stays in this browser only.')),
+        h('p', { class: 'msg' }, 'Sync your boards across devices. They’re saved in a private GitHub repository. Enter its name and an access token with read and write access to that repository. The token stays in this browser only.')),
       h('label', { class: 'lbl' }, h('span', {}, 'Data repository'), repo),
       h('label', { class: 'lbl' }, h('span', {}, 'Access token'), token),
       err,
-      h('div', { class: 'row' }, go, S.cfg ? btn('Cancel', '', () => route()) : null))));
+      h('div', { class: 'row' }, go, (S.cfg || local) ? btn('Cancel', '', () => route()) : null),
+      ...guest)));
+}
+
+async function chooseLocal(err) {
+  err.textContent = '';
+  try { await openLocalDb(); }
+  catch { err.textContent = 'This browser can’t store boards on this device. Private browsing often blocks this. Try a regular window, or connect GitHub instead.'; return; }
+  S.mode = 'local'; lsSet('tl.mode', 'local');
+  resetData();
+  requestPersist(); // asks the browser not to clear this site's data automatically
+  route();
 }
 
 async function verifyConnection(owner, repo, token) {
@@ -2604,25 +2987,137 @@ async function verifyConnection(owner, repo, token) {
   }
 }
 
+// ---------- Boards stored on this device: status, backup reminder, moving to GitHub ----------
+function localChip() {
+  return h('button', { class: 'status warn', type: 'button', title: 'Stored only in this browser. Select for details.', onclick: showLocalInfo },
+    h('i', { class: 'dot' }), h('span', { class: 'long' }, 'Saved locally'), h('span', { class: 'short' }, 'Local'));
+}
+function showLocalInfo() {
+  const last = Number(lsGet('tl.lastBackup', 0)) || 0;
+  const m = modal({
+    title: 'Saved on this device',
+    body: h('div', { class: 'stack' },
+      h('p', { class: 'msg' }, 'Your boards are stored only in this browser and don’t sync to other devices. Clearing site data, private browsing, or resetting the browser deletes them.'),
+      h('p', { class: 'msg' }, last ? `Last backup: ${new Date(last).toLocaleDateString()}.` : 'You haven’t exported a backup yet.')),
+    actions: [
+      S.board ? null : btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); }),
+      btn('Export all boards', 'primary', () => { m.close(); exportAll(); })]
+  });
+}
+// A gentle reminder on the board list: at most once a week, and only when there is no backup from the last 30 days.
+function maybeNudgeBackup() {
+  if (!isLocal() || !S.index.boards.length) return;
+  const now = Date.now(), DAY = 86400000;
+  if (now - (Number(lsGet('tl.lastBackup', 0)) || 0) < 30 * DAY) return;
+  if (now - (Number(lsGet('tl.nudged', 0)) || 0) < 7 * DAY) return;
+  lsSet('tl.nudged', now);
+  toast('Your boards are stored only in this browser. Export a backup to keep them safe.', { ms: 12000, action: { label: 'Export all', fn: exportAll } });
+}
+async function offerMoveLocal() {
+  let n = 0;
+  try { n = (await L.readIndex()).boards.length; } catch { return; }
+  if (!n) return;
+  const c = await choiceBox({
+    title: 'Move boards to GitHub?',
+    message: `You have ${n} ${n === 1 ? 'board' : 'boards'} stored in this browser. Move ${n === 1 ? 'it' : 'them'} to GitHub to sync across devices. You can also do this later in Settings.`,
+    choices: [{ label: 'Not now', value: 'no' }, { label: 'Move', kind: 'primary', value: 'yes' }]
+  });
+  if (c === 'yes') moveLocalFlow(true);
+}
+// Copy each board stored on this device to GitHub, then remove it from this browser. A board is removed only after it is safely on GitHub.
+async function moveLocalFlow(skipConfirm) {
+  if (isLocal()) return;
+  let idx, files;
+  try { idx = (await L.readIndex()).boards; files = await L.list(); } catch (e) { toast(friendlyError(e)); return; }
+  if (!idx.length) { toast('No boards are stored on this device.'); return; }
+  if (!skipConfirm) {
+    const imgCount = [...files.keys()].filter(p => /^boards\/[^/]+\/img\//.test(p)).length;
+    const ok = await confirmBox(`This copies ${idx.length} ${idx.length === 1 ? 'board' : 'boards'} and ${imgCount} ${imgCount === 1 ? 'image' : 'images'} to GitHub, then removes ${idx.length === 1 ? 'it' : 'them'} from this browser. It uses about ${imgCount + idx.length * 2} GitHub writes.`, { title: 'Move boards to GitHub?', confirm: 'Move' });
+    if (!ok) return;
+  }
+  const pb = progressBar();
+  const m = modal({ title: 'Moving boards', body: pb.el, dismiss: false });
+  let done = 0;
+  try {
+    pb.set(0, idx.length, 'Moved');
+    for (const e of idx) {
+      const f = await L.getFile(boardPath(e.id));
+      if (f) {
+        const b = parseBoard(f.text); b.id = e.id;
+        const dir = imgDir(b.id), message = `Move ${b.title || 'board'}`;
+        for (const name of referencedImages(b)) {
+          const sha = files.get(dir + name);
+          const blob = sha ? await L.getBlob(sha) : null;
+          if (blob) await putImage(dir + name, blob, message);
+          else for (const it of Object.values(b.items)) if (it.img === name) it.img = null;
+        }
+        await putFile(boardPath(b.id), ser(b, 2), null, message);
+        await syncIndexEntry(b);
+      }
+      await L.dropBoard(e.id);
+      pb.set(++done, idx.length, 'Moved');
+    }
+    m.close();
+    refreshHome();
+    toast(`Moved ${done} ${done === 1 ? 'board' : 'boards'} to GitHub`);
+  } catch (e) {
+    m.close();
+    refreshHome();
+    toast(`Moved ${done} of ${idx.length}. ${friendlyError(e)} The rest stay on this device. Try again from Settings.`, { ms: 8000 });
+  }
+}
+
 function openSettings() {
+  const local = isLocal();
   const theme = segmented([['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.prefs.theme, v => { setTheme(v); theme.set(v); }, 'Theme');
+  const extra = h('div', { class: 'stack lg' });
   const m = modal({
     title: 'Settings',
     body: h('div', { class: 'stack lg' },
       h('div', { class: 'lbl' }, h('span', {}, 'Appearance'), theme),
       h('div', { class: 'lbl' }, h('span', {}, 'Version'), h('p', { class: 'msg' }, `Ranker ${APP_VERSION} (built ${APP_BUILD})`)),
-      h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour on this browser. GitHub allows about 500, so autosave holds at ${AUTO_CAP} and Save stops at ${HARD_CAP}.`)),
-      h('div', { class: 'lbl' }, h('span', {}, 'Repository'), h('p', { class: 'msg' }, S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected')),
-      h('div', { class: 'row wrap' },
+      local ? null : h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour on this browser. GitHub allows about 500, so autosave holds at ${AUTO_CAP} and Save stops at ${HARD_CAP}.`)),
+      h('div', { class: 'lbl' }, h('span', {}, local ? 'Storage' : 'Repository'), h('p', { class: 'msg' }, local ? 'This browser only. Boards don’t sync to other devices.' : (S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected'))),
+      extra,
+      h('div', { class: 'row wrap' }, ...(local ? [
+        btn('Export all boards', '', () => { m.close(); exportAll(); }),
+        btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); })
+      ] : [
         btn('Change connection…', '', () => { m.close(); renderSetup(); }),
         btn('Clear image cache', '', async () => { try { await caches.delete('tl-img-v1'); toast('Image cache cleared'); } catch { toast('Nothing to clear'); } }),
         btn('Disconnect', 'danger', async () => {
           if (await confirmBox('This removes the token from this browser. Your boards stay on GitHub.', { title: 'Disconnect?', confirm: 'Disconnect', danger: true })) {
-            m.close(); lsDel('tl.cfg'); S.cfg = null; S.board = null; clearImages(); renderSetup();
+            m.close(); lsDel('tl.cfg'); S.cfg = null; S.mode = null; lsDel('tl.mode'); S.board = null; clearImages(); resetData(); renderSetup();
           }
-        }))),
+        })
+      ]))),
     actions: [btn('Done', 'primary', () => m.close())]
   });
+  // Storage details load after the sheet opens.
+  (async () => {
+    const rows = [];
+    const est = await storageEstimate();
+    if (est) {
+      const pct = Math.min(100, (est.usage / est.quota) * 100);
+      const fill = h('div', { class: 'bar-fill' });
+      fill.style.width = (est.usage > 0 ? Math.max(1.5, pct) : 0) + '%';
+      rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Browser storage'), h('div', { class: 'bar' }, fill),
+        h('p', { class: 'hint' }, `${fmtBytes(est.usage)} of ${fmtBytes(est.quota)} used by this site, including cached images. Browsers report this as an estimate.`)));
+    }
+    if (local) {
+      const p = await persistState();
+      rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Protection from automatic cleanup'),
+        h('p', { class: 'msg' }, p === true ? 'On. The browser won’t clear this site’s data on its own.' : p === false ? 'Off. The browser might clear this site’s data if the device runs low on space.' : 'Not available in this browser.'),
+        p === false ? h('div', { class: 'row' }, btn('Request protection', 'sm', async () => { const ok = await requestPersist(); toast(ok ? 'Protection is on.' : 'The browser declined. Export backups regularly.'); })) : null));
+    } else {
+      let n = 0;
+      try { n = (await L.readIndex()).boards.length; } catch { /* no local storage */ }
+      if (n) rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Boards on this device'),
+        h('p', { class: 'msg' }, `${n} ${n === 1 ? 'board is' : 'boards are'} stored only in this browser.`),
+        h('div', { class: 'row' }, btn('Move to GitHub', 'sm', () => { m.close(); moveLocalFlow(); }))));
+    }
+    extra.replaceChildren(...rows);
+  })();
 }
 
 // ---------- Board list ----------
@@ -2634,17 +3129,19 @@ async function renderHome() {
     h('div', { class: 'topbar-in' },
       h('h1', { class: 'brand' }, 'Ranker'),
       h('div', { class: 'spacer' }),
+      isLocal() ? localChip() : null,
       themeButton(),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', onclick: openSettings }, icon('gear'))));
   $('#app').replaceChildren(top, h('main', { class: 'home-main' },
     h('div', { class: 'home-actions' },
       btn('New board', 'primary', createBoardFlow),
-      btn('Import board', '', () => importFlow(true))),
+      btn('Import boards', '', () => importFlow(true))),
     list,
     h('footer', { class: 'app-ver' }, `Ranker ${APP_VERSION}`)));
   paintHome(list);
   // Refresh in the background, so changes from other devices show up.
-  try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); }
+  try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); else if (isLocal()) toast(friendlyError(e)); }
+  maybeNudgeBackup();
 }
 function paintHome(list) {
   if (!list.isConnected) return;
@@ -2689,6 +3186,7 @@ async function createBoardFlow() {
   } catch (e) { m.close(); toast(friendlyError(e)); }
 }
 async function createBoardRemote(b) {
+  if (isLocal()) return localCreateBoard(b);
   const bp = boardPath(b.id), dir = imgDir(b.id);
   const message = `Create ${b.title || 'board'}`;
   // Images first, board last: a board never points at a missing file. One write each.
@@ -2706,6 +3204,14 @@ async function renameBoardRemote(bd) {
     refreshHome();
   } catch (e) { toast(friendlyError(e)); }
 }
+// "Name copy", then "Name copy 2", "Name copy 3", and so on. Duplicating a copy numbers it from the original's name.
+function copyTitle(title) {
+  const base = (String(title || '').trim() || 'Untitled tier list').replace(/ copy(?: \d+)?$/i, '');
+  const have = new Set(S.index.boards.map(b => norm(b.title)));
+  let t = base + ' copy', n = 2;
+  while (have.has(norm(t))) t = `${base} copy ${n++}`;
+  return t;
+}
 async function duplicateBoard(bd) {
   const m = modal({ title: 'Duplicating board', body: h('div', { class: 'center-inline' }, h('div', { class: 'spinner' })), dismiss: false });
   try {
@@ -2714,9 +3220,9 @@ async function duplicateBoard(bd) {
     const src = parseBoard(f.text);
     const id = uid();
     const copy = parseBoard(ser(src));
-    copy.id = id; copy.title = (src.title || 'Untitled tier list') + ' copy';
-    const files = await getTreeFiles(await getHead());
-    const copies = [...referencedImages(src)].filter(n => files.files.has(imgDir(bd.id) + n)).map(n => ({ path: imgDir(id) + n, sha: files.files.get(imgDir(bd.id) + n) }));
+    copy.id = id; copy.title = copyTitle(src.title);
+    const files = await repoFiles();
+    const copies = [...referencedImages(src)].filter(n => files.has(imgDir(bd.id) + n)).map(n => ({ path: imgDir(id) + n, sha: files.get(imgDir(bd.id) + n) }));
     await commitFiles(`Duplicate ${src.title || 'board'}`, () => ({ upload: [{ path: boardPath(id), text: ser(copy, 2) }], copy: copies }));
     await syncIndexEntry(copy);
     m.close(); refreshHome(); toast('Board duplicated');
@@ -2734,7 +3240,9 @@ async function moveBoard(id, dir) {
 }
 async function deleteBoard(id, fromBoard) {
   const bd = S.index.boards.find(x => x.id === id) || { title: S.board && S.board.title };
-  const ok = await confirmBox('This permanently deletes the board and its images from your data repository. GitHub keeps older commits, but the app can’t restore them.', { title: `Delete “${bd.title || 'Untitled tier list'}”?`, confirm: 'Delete', danger: true });
+  const ok = await confirmBox(isLocal()
+    ? 'This permanently deletes the board and its images from this browser. The app can’t restore them.'
+    : 'This permanently deletes the board and its images from your data repository. GitHub keeps older commits, but the app can’t restore them.', { title: `Delete “${bd.title || 'Untitled tier list'}”?`, confirm: 'Delete', danger: true });
   if (!ok) return;
   const m = modal({ title: 'Deleting board', body: h('div', { class: 'center-inline' }, h('div', { class: 'spinner' })), dismiss: false });
   try {
@@ -2754,7 +3262,7 @@ function route() {
   return routing;
 }
 async function doRoute() {
-  if (!S.cfg) { renderSetup(); return; }
+  if (!S.mode) { renderSetup(); return; }
   const m = location.hash.match(/^#\/b\/([\w-]+)$/);
   if (m && S.board && m[1] === S.board.id && $('#boardBody')) return; // already open
   if (S.board && (!m || m[1] !== S.board.id)) {
@@ -2762,7 +3270,7 @@ async function doRoute() {
       if (!(await resolveUnsaved())) { history.replaceState(null, '', '#/b/' + S.board.id); return; }
     }
     if (S.dirty && !S.conflict) await saveNow(false);
-    if (S.dirty && !S.conflict) toast(S.draftOk ? 'Your last changes could not be saved yet. They are kept on this device.' : 'Your last changes could not be saved.');
+    if (S.dirty && !S.conflict) toast(isLocal() ? 'Your last changes could not be saved. This browser might be out of storage space.' : (S.draftOk ? 'Your last changes could not be saved yet. They are kept on this device.' : 'Your last changes could not be saved.'));
     if (!S.dirty && !S.conflict) {
       const plan = housekeepingPlan();
       if (plan && (plan.metaChanged || plan.orphans.length) && writesLastHour() < AUTO_CAP && backoffLeftMs() === 0) { renderLoading('Finishing up…'); await flushHousekeeping(); }
@@ -2773,7 +3281,7 @@ async function doRoute() {
   await renderHome();
 }
 
-// Pick up edits from another device when returning to a tab with no unsaved changes.
+// Pick up edits from another device (or tab) when returning to a tab with no unsaved changes.
 async function checkRemote() {
   if (!S.board || S.dirty || S.saving || S.conflict || document.hidden) return;
   if (Date.now() - S.lastCheck < 30000) return;
@@ -2783,7 +3291,7 @@ async function checkRemote() {
     if (f && f.sha !== S.boardSha && !S.dirty && !S.saving) {
       await refreshRepo();
       adoptRemote(f.text, f.sha);
-      toast('Updated with changes from another device');
+      toast(isLocal() ? 'Updated with changes from another tab' : 'Updated with changes from another device');
     }
   } catch { /* ignore */ }
 }
@@ -2805,12 +3313,15 @@ function boot() {
   if (S.prefs.labelW && !S.prefs.labelEm) S.prefs.labelEm = Math.round((S.prefs.labelW / Math.min(26, Math.max(14, tileSize() * 0.22))) * 100) / 100;
   delete S.prefs.labelW;
   S.cfg = lsGet('tl.cfg', null);
+  S.mode = S.cfg ? 'github' : (lsGet('tl.mode', null) === 'local' ? 'local' : null);
   applyTheme();
   document.addEventListener('keydown', onKeys);
   window.addEventListener('hashchange', route);
   // Leaving the page: keep the work in the local draft. Ask first only when that copy isn't safe yet.
+  // Boards stored on this device have no draft: a save starts at once, and the prompt covers the moment it takes.
   window.addEventListener('beforeunload', e => {
     if (!(S.board && S.dirty)) return;
+    if (isLocal()) { saveNow(false); e.preventDefault(); e.returnValue = ''; return; }
     if (!S.pauseAuto) flushDraft();
     if (S.pauseAuto || !S.draftOk || S.draftDirty) { e.preventDefault(); e.returnValue = ''; }
   });
@@ -2818,7 +3329,7 @@ function boot() {
     if (document.hidden) { if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
     else checkRemote();
   });
-  window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) flushDraft(); });
+  window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) { if (isLocal()) saveNow(false); else flushDraft(); } });
   window.addEventListener('focus', checkRemote);
   setInterval(() => tick(), 2000);
   bindFileDrop();

@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="referrer" content="no-referrer">
+<meta name="application-name" content="Ranker">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Crect x='6' y='7' width='20' height='4' rx='2' fill='%23fff'/%3E%3Crect x='6' y='14' width='14' height='4' rx='2' fill='%23fff' opacity='.8'/%3E%3Crect x='6' y='21' width='8' height='4' rx='2' fill='%23fff' opacity='.6'/%3E%3C/svg%3E">
 <title>Ranker</title>
 <style>
@@ -127,11 +128,11 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 
 /* Tiers */
-.tiers { border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: fit-content(30%) minmax(0, 1fr); gap: 1px 0; background: var(--sep); }
-.tiers.fixed { grid-template-columns: min(var(--label-w, 104px), 60%) minmax(0, 1fr); }
+.tiers { --label-fs: clamp(14px, calc(var(--tile) * 0.22), 26px); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: min-content minmax(0, 1fr); gap: 1px 0; background: var(--sep); }
+.tiers.fixed { grid-template-columns: min(calc(var(--label-em, 7) * var(--label-fs)), 60%) minmax(0, 1fr); }
 .tiers.resizing, .tiers.resizing * { cursor: col-resize !important; user-select: none; -webkit-user-select: none; }
 .tier { display: contents; }
-.tier-label { position: relative; min-width: clamp(56px, calc(var(--tile) * 0.7), 110px); max-width: 55vw; border: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 18px 8px 12px; font-weight: 700; font-size: clamp(14px, calc(var(--tile) * 0.22), 26px); line-height: 1.15; word-break: normal; overflow-wrap: break-word; text-wrap: balance; letter-spacing: -0.01em; }
+.tier-label { position: relative; min-width: clamp(56px, calc(var(--tile) * 0.7), 110px); max-width: 55vw; border: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0.55em 1.1em 0.55em 0.8em; font-weight: 700; font-size: var(--label-fs); line-height: 1.15; word-break: normal; overflow-wrap: break-word; text-wrap: balance; letter-spacing: -0.01em; }
 .tiers.fixed .tier-label { min-width: 0; max-width: none; overflow-wrap: anywhere; }
 .tier-label-t { min-width: 0; }
 .tier-grip { position: absolute; top: 0; bottom: 0; right: 0; width: 16px; cursor: col-resize; touch-action: none; }
@@ -163,8 +164,8 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .ph-name { margin: 6px; text-align: center; font-weight: 600; font-size: clamp(10px, calc(var(--tile) * 0.14), 16px); line-height: 1.2; color: var(--text-2); overflow: hidden; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
 .tile-media.loading::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%); animation: shimmer 1.3s infinite; }
 @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-.tile-name { flex: 1; display: flex; align-items: center; justify-content: center; padding: 4px 5px 5px; background: var(--surface); border-top: 1px solid var(--sep); min-width: 0; }
-.tile-name-t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-align: center; font-size: clamp(10.5px, calc(var(--tile) * 0.13), 14px); line-height: 1.25; font-weight: 560; word-break: break-word; }
+.tile-name { flex: 1; display: flex; align-items: center; justify-content: center; padding: 4px 3px 5px; background: var(--surface); border-top: 1px solid var(--sep); min-width: 0; }
+.tile-name-t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%; text-align: center; font-size: clamp(10px, calc(var(--tile) * 0.15), 14px); line-height: 1.22; font-weight: 560; letter-spacing: -0.01em; word-break: normal; overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto; }
 .tile.dragging { opacity: 0.28; }
 .tile.ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; box-shadow: var(--shadow-lg); opacity: 0.96; cursor: grabbing; transition: none; will-change: transform; }
 .drop-line { position: fixed; left: 0; top: 0; width: 4px; border-radius: 2px; background: var(--accent); z-index: 900; pointer-events: none; box-shadow: 0 0 0 3px var(--accent-soft); display: none; }
@@ -293,12 +294,38 @@ body.file-over::after { content: "Drop images to add them"; position: fixed; ins
 .note-field { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.4; }
 .viewer-note { max-width: min(560px, 100%); max-height: 22vh; overflow: auto; color: rgba(245, 245, 247, 0.82); font-size: 14.5px; line-height: 1.45; text-align: center; white-space: pre-wrap; word-break: break-word; }
 .viewer-note:empty { display: none; }
+
+/* Item search */
+.search { position: relative; margin-left: auto; flex: 0 1 210px; min-width: 130px; }
+.search-input { width: 100%; height: 34px; border: 1px solid transparent; border-radius: 10px; background: var(--fill); color: var(--text); padding: 0 30px 0 32px; font-size: 14px; outline: none; transition: border-color 0.12s, box-shadow 0.12s; -webkit-appearance: none; appearance: none; }
+.search-input::placeholder { color: var(--text-3); }
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface); }
+.search-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); display: flex; pointer-events: none; }
+.search-clear { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--fill-2); color: var(--text-2); display: flex; align-items: center; justify-content: center; padding: 0; }
+.search-clear[hidden] { display: none; }
+.tile.dim { opacity: 0.3; filter: grayscale(0.7); }
+.tile.hit { box-shadow: 0 0 0 3px var(--accent), 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); z-index: 1; }
+@media (max-width: 640px) {
+  .search { flex: 1 1 100%; margin-left: 0; }
+  .search-input { font-size: 16px; height: 38px; }
+}
+.app-ver { margin: 32px 0 8px; text-align: center; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="toasts" aria-live="polite"></div>
 <script>
+// Version of this file, shown in Settings and at the bottom of the board list.
+// MAJOR.MINOR.PATCH: MAJOR for changes that need action (for example a data format change),
+// MINOR for new features, PATCH for fixes only. build.py fills in the build date.
+// 1.0.0  First release.
+// 1.1.0  Per-device view settings, notes, tier label width, pause autosave, Ranker name.
+// 1.2.0  Fewer GitHub writes, shared rate-limit protection, local drafts, item search, tier editor changes.
+const APP_VERSION = '1.2.0';
+const APP_BUILD = '2026-11-11';
+
 // ---------- Utilities ----------
 const $ = (s, r = document) => r.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -338,6 +365,7 @@ const ICONS = {
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   auto: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
@@ -426,11 +454,16 @@ class Conflict extends Error {
 const S = {
   cfg: null,
   // Device-only settings (saved in this browser, never synced): theme, tile size, tier label width.
-  prefs: { theme: 'auto', size: null, labelW: null },
+  prefs: { theme: 'auto', size: null, labelEm: null },
   // Per-board, per-device view settings: names shown, image fit. Loaded when a board opens.
   view: { names: true, fit: 'fill' },
+  search: '',        // item search text: session only, never saved
   pauseAuto: false,   // session only: reset whenever a board is opened
-  squash: null,       // the commit this editing session is folding its saves into
+  writeCap: 350,      // write limit in force for the current save (see HARD_CAP and AUTO_CAP)
+  draftOk: true,      // false when this browser can't keep local drafts
+  draftDirty: false,  // changes not yet written to the local draft
+  errNotified: false,
+  hkRunning: false,
   limitNotified: false,
   repo: { commit: null, files: new Map() },
   index: { boards: [], sha: null },
@@ -447,34 +480,76 @@ const S = {
 // ---------- GitHub API ----------
 const API = 'https://api.github.com';
 let postChain = Promise.resolve();
-let lastPost = 0;
-// Writes are serialized and spaced out to stay well under GitHub's secondary rate limit
-// (80 content-creating requests per minute). 1.2 s apart is about 50 per minute.
-const WRITE_GAP_MS = 1200;
 
-// Rolling record of write requests in the last hour. It survives reloads on this device and
-// drives the autosave slowdown. GitHub documents 500 content-creating requests per hour.
-let writeLog = lsGet('tl.writes', []);
+// ---------- Write budget, shared by every tab of this browser ----------
+// GitHub documents 500 content-creating requests per hour and 80 per minute (secondary limits), plus
+// 5,000 requests per hour overall. Other devices and apps on the same account use the same limits and
+// can't be seen from here, so this app stays well under them:
+//  - Writes from all tabs go through one queue (Web Locks), at least WRITE_GAP_MS apart.
+//  - Every write is recorded in localStorage, read fresh each time, so tabs can't overwrite each other.
+//  - Autosave stops at AUTO_CAP writes per hour and even manual saves stop at HARD_CAP, which leaves room
+//    for another device or app.
+//  - Rate-limit headers from GitHub (shared across devices) pause autosave when the hourly allowance runs low.
+//  - A 403 or 429 starts a backoff that every tab obeys, and it grows if the limit is hit again.
+const HOUR_MS = 3600000;
+const AUTO_CAP = 240, HARD_CAP = 350;
+const LS_WRITES = 'tl.writes', LS_LAST = 'tl.lastw', LS_BACKOFF = 'tl.backoff', LS_RL = 'tl.rl', LS_BO_N = 'tl.bon';
+
+function readWrites() {
+  const now = Date.now();
+  const a = lsGet(LS_WRITES, []);
+  return (Array.isArray(a) ? a : []).filter(t => typeof t === 'number' && now - t < HOUR_MS && t <= now + 60000);
+}
+const writesLastHour = () => readWrites().length;
 function noteWrite() {
   const now = Date.now();
-  writeLog.push(now);
-  writeLog = writeLog.filter(t => now - t < 3600000);
-  lsSet('tl.writes', writeLog);
+  const a = readWrites(); a.push(now);
+  lsSet(LS_WRITES, a); lsSet(LS_LAST, now);
 }
-function writesLastHour() {
-  const now = Date.now();
-  writeLog = writeLog.filter(t => now - t < 3600000);
-  return writeLog.length;
+const backoffLeftMs = () => Math.max(0, Number(lsGet(LS_BACKOFF, 0)) - Date.now());
+// Seconds until the hourly count drops below a cap.
+function secondsUntilBelow(cap) {
+  const a = readWrites().sort((x, y) => x - y);
+  if (a.length < cap) return 0;
+  return Math.max(1, Math.ceil((a[a.length - cap] + HOUR_MS - Date.now()) / 1000));
+}
+// GitHub's own count of the hourly allowance, from the latest response. It covers every device and app on the account.
+function rateRemaining() {
+  const r = lsGet(LS_RL, null);
+  if (!r || !r.reset || r.reset * 1000 < Date.now()) return null;
+  return r.remaining;
+}
+function noteRateHeaders(res) {
+  const rem = res.headers.get('x-ratelimit-remaining'), reset = res.headers.get('x-ratelimit-reset');
+  if (rem !== null && reset !== null && !isNaN(Number(rem))) lsSet(LS_RL, { remaining: Number(rem), reset: Number(reset), at: Date.now() });
+}
+function startBackoff(seconds) {
+  const prev = lsGet(LS_BO_N, { n: 0, at: 0 });
+  const n = Date.now() - prev.at < HOUR_MS ? prev.n + 1 : 1;
+  lsSet(LS_BO_N, { n, at: Date.now() });
+  const secs = Math.min(3600, Math.max(seconds || 0, 60 * 2 ** (n - 1)));
+  lsSet(LS_BACKOFF, Date.now() + secs * 1000);
+  return secs;
+}
+function limitError(kind) {
+  if (kind === 'backoff') { const s = Math.ceil(backoffLeftMs() / 1000); return new GHError(429, `GitHub asked the app to wait. It resumes in about ${Math.max(1, Math.ceil(s / 60))} min.`, { limited: true, retryAfter: s, local: true }); }
+  const s = secondsUntilBelow(S.writeCap);
+  return new GHError(0, `This browser has made many GitHub writes this hour. Saving can resume in about ${Math.max(1, Math.ceil(s / 60))} min.`, { budget: true, retryAfter: s });
 }
 
+// All writes go through here: one at a time across tabs, spaced out, counted, and refused when over budget.
+// 1.5 s apart is at most 40 writes per minute, half of GitHub's documented 80.
+const WRITE_GAP_MS = 1500;
+const withLock = fn => (navigator.locks && navigator.locks.request ? navigator.locks.request('ranker-writes', fn) : fn());
 function paced(fn) {
-  const p = postChain.then(async () => {
-    const wait = lastPost + WRITE_GAP_MS - Date.now();
+  const p = postChain.then(() => withLock(async () => {
+    if (backoffLeftMs() > 0) throw limitError('backoff');
+    if (writesLastHour() >= S.writeCap) throw limitError('budget');
+    const wait = Number(lsGet(LS_LAST, 0)) + WRITE_GAP_MS - Date.now();
     if (wait > 0) await sleep(wait);
-    lastPost = Date.now();
     noteWrite();
     return fn();
-  });
+  }));
   postChain = p.catch(() => {});
   return p;
 }
@@ -495,11 +570,14 @@ async function rawFetch(method, path, body, accept) {
         'X-GitHub-Api-Version': '2022-11-28',
         ...(body ? { 'Content-Type': 'application/json' } : {})
       },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      // Small writes can finish even if the page closes right after.
+      ...(body && method !== 'GET' && JSON.stringify(body).length < 60000 ? { keepalive: true } : {})
     });
   } catch {
     throw new GHError(0, 'Network error. Check your connection.');
   }
+  noteRateHeaders(res);
   if (!res.ok) {
     let msg = '';
     try { msg = (await res.json()).message || ''; } catch { /* ignore */ }
@@ -508,12 +586,14 @@ async function rawFetch(method, path, body, accept) {
     const limited = res.status === 429 || (res.status === 403 && (/rate limit|abuse|secondary/i.test(msg) || remaining === '0'));
     let retryAfter = Number(res.headers.get('retry-after')) || 0;
     if (limited && !retryAfter && reset) retryAfter = Math.max(5, reset - Math.floor(Date.now() / 1000));
+    if (limited) retryAfter = startBackoff(retryAfter);
     throw new GHError(res.status, msg || res.statusText, { limited, retryAfter });
   }
   return res;
 }
 const gh = (method, path, body) => method === 'GET'
-  ? rawFetch(method, path, null).then(r => r.json())
+  // Reads still go out during a backoff for the write limits. They stop only when the main hourly allowance is used up.
+  ? (backoffLeftMs() > 0 && rateRemaining() === 0 ? Promise.reject(limitError('backoff')) : rawFetch(method, path, null).then(r => r.json()))
   : paced(() => rawFetch(method, path, body).then(r => (r.status === 204 ? null : r.json())));
 
 async function getHead() {
@@ -547,20 +627,32 @@ async function getFile(path) {
     throw e;
   }
 }
-async function putFile(path, text, sha, message) {
+async function putContent(path, b64, sha, message) {
   try {
     const r = await gh('PUT', R(`/contents/${encPath(path)}`), {
       message: message || `Update ${path}`,
-      content: b64FromText(text),
+      content: b64,
       branch: S.cfg.branch,
       ...(sha ? { sha } : {})
     });
-    const parents = (r.commit && r.commit.parents) || [];
-    return { sha: r.content.sha, commit: r.commit.sha, tree: r.commit.tree && r.commit.tree.sha, parent: parents[0] && parents[0].sha };
+    return { sha: r.content.sha, commit: r.commit.sha };
   } catch (e) {
     if (e.status === 409 || (e.status === 422 && /sha|exist/i.test(e.message))) throw new Conflict();
     throw e;
   }
+}
+const putFile = (path, text, sha, message) => putContent(path, b64FromText(text), sha, message);
+// A new image file. If it already exists, an earlier attempt got through, which is fine.
+async function putImage(path, blob, message) {
+  const b64 = await blobToB64(blob);
+  try { return await putContent(path, b64, null, message); }
+  catch (e) {
+    if (!(e instanceof Conflict)) throw e;
+    try { return await putContent(path, b64, null, message); } catch (e2) { if (e2 instanceof Conflict) return { sha: null }; throw e2; }
+  }
+}
+async function deleteFile(path, sha, message) {
+  await gh('DELETE', R(`/contents/${encPath(path)}`), { message: message || `Delete ${path}`, sha, branch: S.cfg.branch });
 }
 async function createBlob(u) {
   const body = u.blob
@@ -570,40 +662,15 @@ async function createBlob(u) {
   return r.sha;
 }
 
-// Folding autosaves into one commit. While the branch tip is still the commit this session
-// made, a new save replaces that commit (same parent, newer content) instead of stacking another
-// on top. After 30 minutes, or if anything else committed in between, a new commit starts.
-const SQUASH_MS = 30 * 60 * 1000;
-const canSquash = head => !!(S.squash && S.squash.commit === head && Date.now() - S.squash.started < SQUASH_MS);
-
-// Called after a one-file save made through the Contents API (one new commit on top of the branch).
-// Squashing is optional. If it fails, the save itself has already succeeded.
-async function squashAfterPut(r, message) {
-  const sq = S.squash;
-  if (!(sq && r.parent && r.parent === sq.commit && r.tree && Date.now() - sq.started < SQUASH_MS)) {
-    S.squash = { commit: r.commit, parent: r.parent, started: Date.now() };
-    return;
-  }
-  try {
-    const c = await gh('POST', R('/git/commits'), { message, tree: r.tree, parents: [sq.parent] });
-    if ((await getHead()) !== r.commit) { S.squash = null; return; } // something else committed: leave history alone
-    await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: c.sha, force: true });
-    S.squash = { ...sq, commit: c.sha };
-    S.repo.commit = c.sha;
-  } catch {
-    S.squash = null;
-  }
-}
-
-// Atomic multi-file commit through the Git Data API.
+// Atomic multi-file commit through the Git Data API. It costs 3 requests plus one per new file,
+// so it is used only where that is the cheapest way: copying or removing many files at once.
 // plan(files) receives the freshly fetched file list and returns { upload, copy, remove }.
-// With opts.squash, the commit joins the current editing session's commit when possible.
-async function commitFiles(message, plan, opts = {}) {
+// The ref update is never forced: if the branch moved, GitHub refuses it and the plan runs again.
+async function commitFiles(message, plan) {
   const uploaded = new Map();
   for (let attempt = 0; attempt < 3; attempt++) {
     const head = await getHead();
     const { treeSha, files } = await getTreeFiles(head);
-    const squash = !!opts.squash && canSquash(head);
     const p = plan(files);
     const entries = [];
     const total = p.upload.filter(u => !uploaded.has(u.path)).length;
@@ -622,21 +689,16 @@ async function commitFiles(message, plan, opts = {}) {
     for (const c of p.copy || []) entries.push({ path: c.path, mode: '100644', type: 'blob', sha: c.sha });
     for (const path of p.remove || []) if (files.has(path)) entries.push({ path, mode: '100644', type: 'blob', sha: null });
     const tree = await gh('POST', R('/git/trees'), { base_tree: treeSha, tree: entries });
-    const commit = await gh('POST', R('/git/commits'), { message, tree: tree.sha, parents: squash ? [S.squash.parent] : [head] });
+    const commit = await gh('POST', R('/git/commits'), { message, tree: tree.sha, parents: [head] });
     try {
-      // Replacing a commit needs a forced update, so first make sure nothing else was pushed meanwhile.
-      if (squash && (await getHead()) !== head) continue;
-      await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: commit.sha, ...(squash ? { force: true } : {}) });
+      await gh('PATCH', R(`/git/refs/heads/${S.cfg.branch}`), { sha: commit.sha });
     } catch (e) {
-      // A refused forced update (for example, a protected branch): fall back to a normal commit.
-      if (squash && e.status && e.status < 500 && e.status !== 401 && !e.limited) { S.squash = null; continue; }
       if (e.status === 422 || e.status === 409) continue; // branch moved; try again
       throw e;
     }
     const nf = new Map(files);
     for (const e of entries) { if (e.sha === null) nf.delete(e.path); else nf.set(e.path, e.sha); }
     S.repo = { commit: commit.sha, files: nf };
-    if (opts.squash) S.squash = squash ? { ...S.squash, commit: commit.sha } : { commit: commit.sha, parent: head, started: Date.now() };
     return { files: nf, commit: commit.sha };
   }
   throw new GHError(409, 'The repository kept changing while saving. Try again.');
@@ -671,10 +733,134 @@ async function loadIndex() {
 function friendlyError(e) {
   if (!e) return '';
   if (e.status === 401) return 'GitHub rejected the token. It might have expired. Reconnect in Settings.';
+  if (e.budget || e.local) return e.message;
   if (e.status === 403 && e.limited) return 'GitHub is limiting requests. The app will retry shortly.';
   if (e.status === 403) return 'The token can’t write to this repository. It needs Contents: Read and write.';
   if (e.status === 404) return 'Repository not found, or the token has no access to it.';
   return e.message || 'Something went wrong.';
+}
+
+// ---------- Local drafts (IndexedDB) ----------
+// Unsaved changes, and images not yet on GitHub, are kept in this browser until a save succeeds.
+// This costs no GitHub requests, so autosave can wait without risking your work. If the tab closes,
+// crashes, or the phone reclaims it, the draft is restored the next time you open the board.
+// It is a safety copy, not a second source of truth: GitHub stays the one place boards live.
+const DRAFT_DB = 'ranker', DRAFT_VER = 1;
+let draftDbPromise = null;
+let draftTimer = null;
+let draftBlobKeys = new Set();
+
+function openDraftDb() {
+  if (!draftDbPromise) {
+    draftDbPromise = new Promise((res, rej) => {
+      try {
+        if (!window.indexedDB) throw new Error('IndexedDB is not available');
+        const r = indexedDB.open(DRAFT_DB, DRAFT_VER);
+        r.onupgradeneeded = () => {
+          const db = r.result;
+          db.createObjectStore('drafts', { keyPath: 'key' });
+          db.createObjectStore('blobs', { keyPath: 'key' });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error || new Error('Could not open local storage'));
+        r.onblocked = () => rej(new Error('Local storage is blocked'));
+      } catch (e) { rej(e); }
+    }).catch(e => { S.draftOk = false; throw e; });
+  }
+  return draftDbPromise;
+}
+const draftKey = id => `${S.cfg.owner}/${S.cfg.repo}/${id}`;
+const blobRange = key => IDBKeyRange.bound(key + '/', key + '/￿');
+function idbDone(t) {
+  return new Promise((res, rej) => { t.oncomplete = () => res(); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('aborted')); });
+}
+
+async function writeDraft() {
+  if (!S.draftOk || !S.board || !S.cfg) return;
+  const b = S.board;
+  if (!S.dirty) { await clearDraft(b.id); return; }
+  if (S.pauseAuto) return; // a paused session is meant to be disposable
+  const key = draftKey(b.id), dir = imgDir(b.id);
+  const pending = [...referencedImages(b)].filter(f => S.imgs.has(f) && !S.repo.files.has(dir + f));
+  const rec = { key, boardId: b.id, baseSha: S.boardSha || null, json: ser(b), at: Date.now(), images: pending };
+  const db = await openDraftDb();
+  const t = db.transaction(['drafts', 'blobs'], 'readwrite');
+  const done = idbDone(t);
+  t.objectStore('drafts').put(rec);
+  const bs = t.objectStore('blobs');
+  const want = new Set(pending.map(f => key + '/' + f));
+  for (const f of pending) if (!draftBlobKeys.has(key + '/' + f)) bs.put({ key: key + '/' + f, blob: S.imgs.get(f).blob });
+  for (const k of draftBlobKeys) if (!want.has(k)) bs.delete(k);
+  await done;
+  draftBlobKeys = want;
+}
+async function clearDraft(id) {
+  if (!S.draftOk || !S.cfg) return;
+  try {
+    const key = draftKey(id);
+    const db = await openDraftDb();
+    const t = db.transaction(['drafts', 'blobs'], 'readwrite');
+    const done = idbDone(t);
+    t.objectStore('drafts').delete(key);
+    t.objectStore('blobs').delete(blobRange(key));
+    await done;
+    draftBlobKeys = new Set();
+  } catch { /* best effort */ }
+}
+async function readDraft(id) {
+  const key = draftKey(id);
+  const db = await openDraftDb();
+  const t = db.transaction(['drafts', 'blobs'], 'readonly');
+  const done = idbDone(t);
+  const rec = await new Promise((res, rej) => { const r = t.objectStore('drafts').get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const rows = await new Promise((res, rej) => { const r = t.objectStore('blobs').getAll(blobRange(key)); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  await done;
+  if (!rec) return null;
+  const blobs = new Map(rows.map(x => [x.key.slice(key.length + 1), x.blob]));
+  return { rec, blobs };
+}
+
+// Write the draft shortly after changes stop. Called whenever the board changes.
+function scheduleDraft() {
+  if (!S.draftOk || !S.board) return;
+  S.draftDirty = !!S.dirty && !S.pauseAuto;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(flushDraft, 500);
+}
+async function flushDraft() {
+  clearTimeout(draftTimer); draftTimer = null;
+  try { await writeDraft(); } catch { S.draftOk = false; }
+  S.draftDirty = !!draftTimer;
+}
+
+// On opening a board: bring back changes that never reached GitHub.
+async function restoreDraft(remoteSha) {
+  if (!S.draftOk || !S.cfg || !S.board) return;
+  const id = S.board.id;
+  let d;
+  try { d = await readDraft(id); } catch { return; }
+  if (!d) return;
+  if (d.rec.json === S.lastSavedJson) { await clearDraft(id); return; }
+  if (d.rec.baseSha !== remoteSha) {
+    const c = await choiceBox({
+      title: 'Unsaved changes on this device',
+      message: `You made changes on this device (${new Date(d.rec.at).toLocaleString()}) that never reached GitHub, and the board was saved from another device since. Which version do you want to keep?`,
+      choices: [{ label: 'Use GitHub version', value: 'remote' }, { label: 'Keep this device’s changes', kind: 'primary', value: 'draft' }]
+    });
+    if (c === 'remote') { await clearDraft(id); return; }
+    if (c !== 'draft') return; // dismissed: ask again next time
+  }
+  let nb;
+  try { nb = parseBoard(d.rec.json); } catch { await clearDraft(id); return; }
+  nb.id = id; nb.legacy = S.board.legacy;
+  for (const [f, blob] of d.blobs) if (!S.imgs.has(f)) S.imgs.set(f, { blob, url: URL.createObjectURL(blob) });
+  const dir = imgDir(id);
+  for (const it of Object.values(nb.items)) if (it.img && !S.imgs.has(it.img) && !S.repo.files.has(dir + it.img)) it.img = null;
+  S.board = nb;
+  draftBlobKeys = new Set([...d.blobs.keys()].map(f => draftKey(id) + '/' + f));
+  recomputeDirty();
+  S.dirtySince = Date.now(); S.lastChange = Date.now();
+  toast('Restored unsaved changes from this device');
 }
 
 // ---------- Board model ----------
@@ -773,6 +959,7 @@ function recomputeDirty() {
 function afterChange() {
   S.lastChange = Date.now();
   recomputeDirty();
+  scheduleDraft();
   if (typeof renderBody === 'function' && $('#boardBody')) { renderBody(); syncHeader(); renderTopbar(); }
 }
 
@@ -787,24 +974,27 @@ async function saveNow(manual) {
     return true;
   }
   S.saving = true; S.err = null; S.progress = null;
+  S.writeCap = manual ? HARD_CAP : AUTO_CAP;
   renderStatus();
   const p = (async () => {
     const b = S.board;
     const text = ser(b, 2), compact = ser(b);
     try {
       await doSave(b, text);
-      S.lastSavedJson = compact; S.lastSaveEnd = Date.now(); S.savedAt = new Date();
+      S.lastSavedJson = compact; S.lastSaveEnd = Date.now(); S.savedAt = new Date(); S.errNotified = false;
       return true;
     } catch (e) {
       if (e instanceof Conflict) { await prepareConflict(); return false; }
       S.err = e;
-      S.backoffUntil = Date.now() + (e.limited ? Math.max(30, e.retryAfter || 60) : 15) * 1000;
-      toast(friendlyError(e));
+      S.backoffUntil = Date.now() + (e.limited || e.budget ? Math.min(600, Math.max(30, e.retryAfter || 60)) : 15) * 1000;
+      if (manual || !S.errNotified) toast(friendlyError(e));
+      S.errNotified = true;
       return false;
     } finally {
-      S.saving = false; S.progress = null;
+      S.saving = false; S.progress = null; S.writeCap = HARD_CAP;
       recomputeDirty();
       renderStatus(); renderTopbar();
+      scheduleDraft();
     }
   })();
   S.savePromise = p;
@@ -817,53 +1007,27 @@ class Retry extends Error {}
 const boardMeta = b => ({ title: b.title, description: b.description, colors: b.tiers.map(t => t.color), count: Object.keys(b.items).length });
 const metaKey = m => JSON.stringify([m.title, m.description || '', m.colors || [], m.count || 0]);
 
-// One save is one commit. The board list entry (index.json) travels in the same commit as the board,
-// and repeated saves in one editing session fold into that commit (see squashAfterPut and commitFiles).
+// Cost of a save: one write for board.json, plus one per image that is not on GitHub yet.
+// Nothing else is written here. The board list and unused images are tidied later (flushHousekeeping).
 async function doSave(b, text) {
   const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b);
   const message = `Update ${b.title || 'board'}`;
   const missing = [...refd].filter(f => !S.repo.files.has(dir + f) && S.imgs.has(f));
-  const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
-  const meta = boardMeta(b);
-  const entry = S.index.boards.find(x => x.id === b.id);
-  const metaChanged = !entry || metaKey(entry) !== metaKey(meta);
-  if (!missing.length && !orphans.length && !metaChanged) {
-    // Common case: only the layout changed. One file, one request, then fold the commit.
-    const r = await putFile(bp, text, S.boardSha, message);
-    S.boardSha = r.sha; S.repo.files.set(bp, r.sha); S.repo.commit = r.commit;
-    await squashAfterPut(r, message);
-    return;
-  }
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let idx = null, idxText = null, idxSha = null;
-    if (metaChanged) {
-      const f = await getFile('index.json');
-      idx = f ? JSON.parse(f.text) : { v: 1, boards: [] };
-      if (!Array.isArray(idx.boards)) idx.boards = [];
-      idxSha = f ? f.sha : null;
-      const x = idx.boards.find(y => y.id === b.id);
-      if (x) Object.assign(x, meta); else idx.boards.push({ id: b.id, ...meta });
-      idxText = JSON.stringify(idx, null, 2);
+  if (missing.length) {
+    // Check for a conflict before spending writes on images.
+    const cur = await getFile(bp);
+    if ((cur ? cur.sha : null) !== (S.boardSha || null)) throw new Conflict();
+    let done = 0;
+    for (const f of missing) {
+      S.progress = { done, total: missing.length + 1 }; renderStatus();
+      const r = await putImage(dir + f, S.imgs.get(f).blob, message);
+      S.repo.files.set(dir + f, r.sha || 'present');
+      done++;
     }
-    try {
-      const res = await commitFiles(message, files => {
-        if ((files.get(bp) || null) !== (S.boardSha || null)) throw new Conflict();
-        if (metaChanged && (files.get('index.json') || null) !== idxSha) throw new Retry();
-        const upload = [{ path: bp, text }];
-        if (idxText) upload.push({ path: 'index.json', text: idxText });
-        for (const f of refd) if (!files.has(dir + f) && S.imgs.has(f)) upload.push({ path: dir + f, blob: S.imgs.get(f).blob });
-        const remove = [...files.keys()].filter(p => p.startsWith(dir) && !refd.has(p.slice(dir.length)));
-        return { upload, remove };
-      }, { squash: true });
-      S.boardSha = res.files.get(bp);
-      if (idx) S.index = { boards: idx.boards, sha: res.files.get('index.json') };
-      return;
-    } catch (e) {
-      if (e instanceof Retry) continue; // the board list changed on another device: read it again
-      throw e;
-    }
+    S.progress = { done, total: missing.length + 1 }; renderStatus();
   }
-  throw new GHError(409, 'The board list kept changing. Try again.');
+  const r = await putFile(bp, text, S.boardSha, message);
+  S.boardSha = r.sha; S.repo.files.set(bp, r.sha); S.repo.commit = r.commit;
 }
 
 // Used when creating, duplicating, or importing a board, which write the list on their own.
@@ -878,26 +1042,109 @@ async function syncIndexEntry(b) {
   });
 }
 
-// Autosave. A save starts after 4 seconds without edits, or 20 seconds after the first unsaved
-// change during continuous editing, and never sooner than 10 seconds after the last save finished.
-// Saves from one editing session fold into one commit, so this does not flood the history.
-// As the hourly write count grows, the gap between saves widens to stay inside GitHub's limits.
-const QUIET_MS = 4000, MAX_WAIT_MS = 20000, BASE_GAP_MS = 10000;
+// ---------- Housekeeping ----------
+// Two things are not part of a normal save, to keep saves at one write each:
+//  1. The board's card in index.json (title, item count, tier colors).
+//  2. Image files that no saved or current version of the board uses any more.
+// Both are done together, at most once per editing burst: when the board is closed, or after 2 minutes without edits.
+function housekeepingPlan() {
+  if (!S.board) return null;
+  let saved;
+  try { saved = parseBoard(S.lastSavedJson); } catch { return null; }
+  const id = S.board.id, dir = imgDir(id);
+  const keep = new Set([...referencedImages(saved), ...referencedImages(S.board)]);
+  const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !p.slice(dir.length).includes('/') && !keep.has(p.slice(dir.length)));
+  const meta = boardMeta(saved);
+  const entry = S.index.boards.find(x => x.id === id);
+  return { id, title: saved.title, meta, orphans, metaChanged: !entry || metaKey(entry) !== metaKey(meta) };
+}
+async function flushHousekeeping() {
+  if (S.hkRunning || S.saving || S.conflict || !S.board || S.pauseAuto) return false;
+  const plan = housekeepingPlan();
+  if (!plan || (!plan.metaChanged && !plan.orphans.length)) return false;
+  if (writesLastHour() >= AUTO_CAP || backoffLeftMs() > 0) return false;
+  S.hkRunning = true; S.writeCap = AUTO_CAP;
+  const message = `Tidy ${plan.title || 'board'}`;
+  const applyMeta = idx => {
+    const x = idx.boards.find(y => y.id === plan.id);
+    if (x) Object.assign(x, plan.meta); else idx.boards.push({ id: plan.id, ...plan.meta });
+  };
+  try {
+    if (plan.orphans.length >= 4) {
+      // Removing many files: one commit costs 3 writes (4 with the board list), cheaper than one delete each.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        let idx = null, idxText = null, idxSha = null;
+        if (plan.metaChanged) {
+          const f = await getFile('index.json');
+          idx = f ? JSON.parse(f.text) : { v: 1, boards: [] };
+          if (!Array.isArray(idx.boards)) idx.boards = [];
+          idxSha = f ? f.sha : null;
+          applyMeta(idx); idxText = JSON.stringify(idx, null, 2);
+        }
+        try {
+          const res = await commitFiles(message, files => {
+            if (idxText && (files.get('index.json') || null) !== idxSha) throw new Retry();
+            return { upload: idxText ? [{ path: 'index.json', text: idxText }] : [], remove: plan.orphans };
+          });
+          if (idx) S.index = { boards: idx.boards, sha: res.files.get('index.json') };
+          break;
+        } catch (e) { if (e instanceof Retry) continue; throw e; }
+      }
+    } else {
+      for (const path of plan.orphans) {
+        await deleteFile(path, S.repo.files.get(path), message);
+        S.repo.files.delete(path);
+      }
+      if (plan.metaChanged) await updateIndex(applyMeta);
+    }
+    S.hkRetryAt = 0;
+    return true;
+  } catch {
+    S.hkRetryAt = Date.now() + 10 * 60 * 1000; // don't spend more writes on a failing cleanup
+    return false;
+  } finally {
+    S.hkRunning = false; S.writeCap = HARD_CAP;
+  }
+}
+
+// ---------- Autosave ----------
+// A save starts 8 seconds after the last edit, or 60 seconds after the first unsaved change during
+// continuous editing, and never sooner than 10 seconds after the previous save finished.
+// As this browser's hourly write count grows, the gap widens, and autosave stops at AUTO_CAP.
+// Changes also stay in a local draft (IndexedDB), so waiting costs nothing but GitHub freshness.
+const QUIET_MS = 8000, MAX_WAIT_MS = 60000;
 function minGapMs() {
   const n = writesLastHour();
-  return n >= 350 ? 180000 : n >= 250 ? 60000 : BASE_GAP_MS;
+  return n < 60 ? 10000 : n < 120 ? 30000 : n < 180 ? 90000 : 300000;
 }
-function tick() {
-  if (!S.board || S.saving || S.conflict || S.pauseAuto || !S.dirty) return;
+// Why autosave must wait, or null.
+function autosaveHold() {
+  if (backoffLeftMs() > 0) return 'backoff';
+  if (writesLastHour() >= AUTO_CAP) return 'budget';
+  const rem = rateRemaining();
+  if (rem !== null && rem < 400) return 'ratelimit';
+  return null;
+}
+function tick(hiding) {
+  if (!S.board || S.saving || S.conflict) return;
   const now = Date.now();
-  if (now < S.backoffUntil) return;
-  if (writesLastHour() >= 450) {
-    if (!S.limitNotified) { S.limitNotified = true; toast('Close to GitHub’s hourly write limit. Autosave is on hold for a while. Use Save when you need to.', { ms: 8000 }); }
+  if (!S.dirty) {
+    // Idle: tidy the board list and unused images after 2 quiet minutes.
+    if (!S.hkRunning && now >= (S.hkRetryAt || 0) && now - S.lastChange > 120000 && now - S.lastSaveEnd > 120000) flushHousekeeping();
+    return;
+  }
+  if (S.pauseAuto || now < S.backoffUntil) return;
+  const hold = autosaveHold();
+  if (hold) {
+    if (hold !== 'backoff' && !S.limitNotified) {
+      S.limitNotified = true;
+      toast(S.draftOk ? 'Autosave is waiting to stay within GitHub’s limits. Your changes are kept on this device and save automatically later.' : 'Autosave is waiting to stay within GitHub’s limits. It resumes automatically.', { ms: 9000 });
+    }
     return;
   }
   S.limitNotified = false;
   if (now - S.lastSaveEnd < minGapMs()) return;
-  if (now - S.lastChange < QUIET_MS && now - S.dirtySince < MAX_WAIT_MS) return;
+  if (!hiding && now - S.lastChange < QUIET_MS && now - S.dirtySince < MAX_WAIT_MS) return;
   saveNow(false);
 }
 
@@ -949,6 +1196,7 @@ function adoptRemote(text, sha) {
   S.lastSavedJson = ser(nb);
   S.hist = { past: [], future: [] };
   S.dirty = false;
+  scheduleDraft();
   startImageLoad();
   renderBody(); syncHeader(); renderTopbar();
 }
@@ -1099,7 +1347,8 @@ function modal({ title, body, actions, wide, onClose, dismiss = true }) {
   };
   overlay.addEventListener('pointerdown', e => { if (dismiss && e.target === overlay) api.close(); });
   modalStack.push(api);
-  setTimeout(() => { const f = sheet.querySelector('input:not([type=file]):not([type=checkbox]),textarea'); if (f && matchMedia('(hover:hover)').matches) f.focus(); }, 30);
+  // Focus the first field, unless the person has already started using another one.
+  setTimeout(() => { const f = sheet.querySelector('input:not([type=file]):not([type=checkbox]),textarea'); if (f && !sheet.contains(document.activeElement) && matchMedia('(hover:hover)').matches) f.focus(); }, 30);
   return api;
 }
 document.addEventListener('keydown', e => {
@@ -1236,7 +1485,7 @@ function tileEl(id) {
     media.classList.toggle('loading', !!loading);
     if (!loading) media.append(it.name && !S.view.names ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
   }
-  return h('div', { class: 'tile fit-' + S.view.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item' },
+  return h('div', { class: 'tile fit-' + S.view.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item', title: it.name || null },
     media, showName ? h('div', { class: 'tile-name' }, h('span', { class: 'tile-name-t' }, it.name)) : null);
 }
 
@@ -1269,8 +1518,8 @@ function renderBody() {
   if (!root || !S.board) return;
   const b = S.board;
   root.style.setProperty('--tile', tileSize() + 'px');
-  const tiers = h('div', { class: 'tiers' + (S.prefs.labelW ? ' fixed' : '') });
-  if (S.prefs.labelW) tiers.style.setProperty('--label-w', S.prefs.labelW + 'px');
+  const tiers = h('div', { class: 'tiers' + (S.prefs.labelEm ? ' fixed' : '') });
+  if (S.prefs.labelEm) tiers.style.setProperty('--label-em', S.prefs.labelEm);
   for (const t of b.tiers) {
     const label = h('button', { class: 'tier-label', type: 'button', style: { background: t.color, color: textOn(t.color) }, 'aria-label': `Edit tier ${t.name || 'unnamed'}`, onclick: () => editTier(t.id) },
       h('span', { class: 'tier-label-t' }, t.name || '\u00a0'),
@@ -1290,10 +1539,13 @@ function renderBody() {
   root.replaceChildren(tiers, pool);
   root.scrollTop = scroll;
   initLabelResize(tiers);
+  applySearch();
   updateUndoButtons();
 }
-// Tier label width: automatic by default (fits the longest name). Dragging the grip on a label
-// sets a fixed width for this device. Double-click the grip, or use the board menu, to go back to automatic.
+// Tier label width: automatic by default (as narrow as the longest word allows). Dragging the grip on a
+// label sets a fixed width for this device. The width is stored in em, a multiple of the label's own text
+// size, so it grows and shrinks with the size slider. The tier menu can return it to automatic.
+const LABEL_EM_MIN = 3.5;
 function initLabelResize(tiers) {
   tiers.addEventListener('click', e => { if (e.target.closest('.tier-grip')) e.stopPropagation(); }, true);
   tiers.addEventListener('dblclick', e => { if (e.target.closest('.tier-grip')) resetLabelWidth(); });
@@ -1302,16 +1554,17 @@ function initLabelResize(tiers) {
     if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
     e.preventDefault();
     const label = g.closest('.tier-label');
+    const fs = parseFloat(getComputedStyle(label).fontSize) || 16;
     const startX = e.clientX, startW = label.getBoundingClientRect().width;
     const total = tiers.getBoundingClientRect().width;
-    const min = 48, max = Math.max(min + 20, total * 0.6);
+    const maxEm = Math.max(LABEL_EM_MIN + 1, (total * 0.6) / fs);
     g.setPointerCapture(e.pointerId);
     tiers.classList.add('resizing');
     const move = ev => {
-      const w = Math.round(Math.min(max, Math.max(min, startW + ev.clientX - startX)));
-      S.prefs.labelW = w;
+      const em = Math.min(maxEm, Math.max(LABEL_EM_MIN, (startW + ev.clientX - startX) / fs));
+      S.prefs.labelEm = Math.round(em * 100) / 100;
       tiers.classList.add('fixed');
-      tiers.style.setProperty('--label-w', w + 'px');
+      tiers.style.setProperty('--label-em', S.prefs.labelEm);
     };
     const up = () => {
       g.removeEventListener('pointermove', move);
@@ -1326,9 +1579,47 @@ function initLabelResize(tiers) {
   });
 }
 function resetLabelWidth() {
-  S.prefs.labelW = null; savePrefs();
+  S.prefs.labelEm = null; savePrefs();
   const t = $('.tiers');
-  if (t) { t.classList.remove('fixed'); t.style.removeProperty('--label-w'); }
+  if (t) { t.classList.remove('fixed'); t.style.removeProperty('--label-em'); }
+}
+
+// ---------- Search ----------
+// Highlights matching items and dims the rest. Names only. Nothing is saved or synced.
+const fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function applySearch() {
+  const root = $('#boardBody');
+  if (!root || !S.board) return null;
+  const q = fold(S.search).trim();
+  let first = null;
+  for (const t of root.querySelectorAll('.tile')) {
+    const it = S.board.items[t.dataset.id];
+    const hit = !!q && !!it && fold(it.name).includes(q);
+    t.classList.toggle('hit', hit);
+    t.classList.toggle('dim', !!q && !hit);
+    if (hit && !first) first = t;
+  }
+  return first;
+}
+function runSearch(value) {
+  S.search = value;
+  const first = applySearch();
+  const clear = $('.search-clear');
+  if (clear) clear.hidden = !value;
+  if (first) {
+    const r = first.getBoundingClientRect();
+    if (r.top < 90 || r.bottom > window.innerHeight - 20) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+function searchBox() {
+  const input = h('input', { class: 'search-input', id: 'itemSearch', type: 'text', placeholder: 'Search items', 'aria-label': 'Search items', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', enterkeyhint: 'search', value: S.search || '' });
+  const clear = h('button', { class: 'search-clear', type: 'button', 'aria-label': 'Clear search', hidden: !S.search, onclick: () => { input.value = ''; runSearch(''); input.focus(); } }, icon('x', 14));
+  input.addEventListener('input', () => runSearch(input.value));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { input.value = ''; runSearch(''); input.blur(); }
+    else if (e.key === 'Enter') input.blur();
+  });
+  return h('div', { class: 'search' }, h('span', { class: 'search-ico' }, icon('search', 16)), input, clear);
 }
 
 function onImageReady(f) {
@@ -1337,6 +1628,7 @@ function onImageReady(f) {
     const it = S.board.items[t.dataset.id];
     if (it && it.img === f) { const n = tileEl(it.id); if (n) t.replaceWith(n); }
   }
+  applySearch();
 }
 
 function syncHeader() {
@@ -1390,7 +1682,8 @@ async function openBoard(id) {
     S.lastSavedJson = ser(S.board);
     S.hist = { past: [], future: [] };
     S.dirty = false; S.err = null; S.conflict = null; S.savedAt = new Date(); S.lastSaveEnd = Date.now();
-    S.pauseAuto = false; S.squash = null;
+    S.pauseAuto = false; S.search = ''; draftBlobKeys = new Set();
+    await restoreDraft(f.sha);
     loadView(S.board);
     renderBoardScreen();
     startImageLoad();
@@ -1425,7 +1718,7 @@ function renderBoardScreen() {
   const controls = h('div', { class: 'controls' },
     h('label', { class: 'size-ctl' }, h('span', {}, 'Size'), slider),
     h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: S.view.names, onchange: e => setView({ names: e.target.checked }) }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
-    fitSeg);
+    fitSeg, searchBox());
 
   const app = $('#app');
   app.replaceChildren(top,
@@ -1453,6 +1746,7 @@ function mutateText(fn, key) {
   S.hist.future = [];
   S.lastChange = now;
   recomputeDirty();
+  scheduleDraft();
   renderTopbar();
 }
 
@@ -1462,7 +1756,7 @@ async function resolveUnsaved() {
   if (S.pauseAuto) {
     const c = await choiceBox({ title: 'Autosave is paused', message: 'This board has unsaved changes.',
       choices: [{ label: 'Cancel', value: 'cancel' }, { label: 'Discard changes', kind: 'danger', value: 'discard' }, { label: 'Save and leave', kind: 'primary', value: 'save' }] });
-    if (c === 'discard') { S.dirty = false; return true; }
+    if (c === 'discard') { S.dirty = false; clearDraft(S.board.id); return true; }
     if (c !== 'save') return false;
   }
   const ok = await saveNow(true);
@@ -1479,6 +1773,7 @@ async function leaveBoard() {
 function togglePause() {
   S.pauseAuto = !S.pauseAuto;
   renderStatus();
+  scheduleDraft();
   toast(S.pauseAuto ? 'Autosave paused until you close this board or reload.' : 'Autosave resumed.');
 }
 
@@ -1486,16 +1781,15 @@ function boardMenu(anchor) {
   openMenu(anchor, [
     { label: 'Rename board…', onClick: async () => { const v = await promptBox({ title: 'Rename board', value: S.board.title, confirm: 'Rename' }); if (v != null) { mutate(b => { b.title = v.trim(); }); syncHeader(); } } },
     { label: 'Add items…', onClick: openAddItems },
-    { label: 'Add tier', onClick: () => addTier() },
+    { label: 'Add tier…', onClick: () => addTier() },
     { divider: true },
-    { label: 'Export board…', onClick: exportBoard },
+    { label: 'Export board', onClick: exportBoard },
     { label: 'Import into this board…', onClick: () => importFlow(false) },
     { divider: true },
     { label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause },
-    { label: 'Reset tier label width', onClick: resetLabelWidth },
     { divider: true },
-    { label: 'Reset placements…', onClick: resetPlacements },
-    { label: 'Delete board…', danger: true, onClick: () => deleteBoard(S.board.id, true) }
+    { label: 'Reset placements', onClick: resetPlacements },
+    { label: 'Delete board', danger: true, onClick: () => deleteBoard(S.board.id, true) }
   ]);
 }
 function themeButton() {
@@ -1514,15 +1808,14 @@ async function resetPlacements() {
 }
 
 // ---------- Tiers ----------
-function addTier() {
-  const used = new Set(S.board.tiers.map(t => t.color));
-  const color = PALETTE.find(c => !used.has(c)) || PALETTE[S.board.tiers.length % PALETTE.length];
-  let id;
-  mutate(b => { id = uid(); b.tiers.push({ id, name: 'New', color, items: [] }); });
-  editTier(id);
-}
+// A new tier is created only when the person confirms.
+function addTier() { editTier(null); }
 function editTier(tierId) {
-  const t0 = S.board.tiers.find(t => t.id === tierId);
+  const isNew = tierId == null;
+  const used = new Set(S.board.tiers.map(t => t.color));
+  const t0 = isNew
+    ? { name: '', color: PALETTE.find(c => !used.has(c)) || PALETTE[S.board.tiers.length % PALETTE.length] }
+    : S.board.tiers.find(t => t.id === tierId);
   if (!t0) return;
   let color = t0.color;
   const name = h('input', { class: 'field', type: 'text', value: t0.name, placeholder: 'Tier name', maxlength: '40' });
@@ -1532,7 +1825,7 @@ function editTier(tierId) {
   const sw = h('div', { class: 'swatches' });
   const paint = () => {
     preview.style.background = color; preview.style.color = textOn(color);
-    preview.firstChild.textContent = name.value || ' ';
+    preview.firstChild.textContent = name.value || ' ';
     picker.value = color;
     if (document.activeElement !== hex) hex.value = color;
     sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === color));
@@ -1544,18 +1837,27 @@ function editTier(tierId) {
   hex.addEventListener('blur', () => { hex.value = color; });
   paint();
 
-  const idx = S.board.tiers.findIndex(t => t.id === tierId);
+  const confirm = () => {
+    m.close();
+    if (isNew) mutate(b => { b.tiers.push({ id: uid(), name: name.value.trim(), color, items: [] }); });
+    else mutate(b => { const t = b.tiers.find(x => x.id === tierId); if (t) { t.name = name.value.trim(); t.color = color; } });
+  };
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } });
+
+  const idx = isNew ? -1 : S.board.tiers.findIndex(t => t.id === tierId);
+  const resetW = btn('Reset tier width', 'ghost sm', () => { resetLabelWidth(); resetW.disabled = true; }, { disabled: !S.prefs.labelEm });
   const m = modal({
-    title: 'Edit tier',
+    title: isNew ? 'New tier' : 'Edit tier',
     body: h('div', { class: 'stack' },
       preview,
       h('label', { class: 'lbl' }, h('span', {}, 'Name'), name),
       h('div', { class: 'lbl' }, h('span', {}, 'Color'), sw,
         h('div', { class: 'row' }, picker, hex)),
-      h('div', { class: 'row between' },
-        h('div', { class: 'row' },
+      isNew ? null : h('div', { class: 'row between wrap' },
+        h('div', { class: 'row wrap' },
           btn('Move up', 'ghost sm', () => moveTier(tierId, -1, m), { disabled: idx <= 0 }),
-          btn('Move down', 'ghost sm', () => moveTier(tierId, 1, m), { disabled: idx >= S.board.tiers.length - 1 })),
+          btn('Move down', 'ghost sm', () => moveTier(tierId, 1, m), { disabled: idx >= S.board.tiers.length - 1 }),
+          resetW),
         btn('Delete tier', 'danger sm', async () => {
           const t = S.board.tiers.find(x => x.id === tierId);
           const msg = t.items.length ? `The ${t.items.length} ${t.items.length === 1 ? 'item' : 'items'} in this tier will move to Unranked.` : 'This tier is empty.';
@@ -1564,11 +1866,9 @@ function editTier(tierId) {
             mutate(b => { const i = b.tiers.findIndex(x => x.id === tierId); if (i >= 0) { b.pool.push(...b.tiers[i].items); b.tiers.splice(i, 1); } });
           }
         }))),
-    actions: [btn('Cancel', '', () => m.close()), btn('Done', 'primary', () => {
-      m.close();
-      mutate(b => { const t = b.tiers.find(x => x.id === tierId); if (t) { t.name = name.value.trim(); t.color = color; } });
-    })]
+    actions: [btn('Cancel', '', () => m.close()), btn(isNew ? 'Create' : 'Done', 'primary', confirm)]
   });
+  if (isNew) setTimeout(() => name.focus(), 60);
 }
 function moveTier(tierId, dir, m) {
   mutate(b => {
@@ -1803,7 +2103,7 @@ function editItem(id) {
   let zone = findZone(S.board, id);
   const preview = h('button', { class: 'item-prev', type: 'button', 'aria-label': 'Enlarge image' });
   const name = h('input', { class: 'field', type: 'text', value: orig.name, placeholder: 'Name (optional if there is an image)', maxlength: '120' });
-  const note = h('textarea', { class: 'field note-field', rows: '3', maxlength: String(NOTE_MAX), placeholder: 'Notes (optional). Shown when the image is enlarged.' });
+  const note = h('textarea', { class: 'field note-field', rows: '3', maxlength: String(NOTE_MAX), placeholder: 'Add a note…' });
   note.value = orig.note || '';
   const err = h('p', { class: 'form-err', role: 'alert' });
   const removeImg = btn('Remove image', 'ghost sm', () => { st.img = null; st.link = null; paint(); });
@@ -2310,7 +2610,8 @@ function openSettings() {
     title: 'Settings',
     body: h('div', { class: 'stack lg' },
       h('div', { class: 'lbl' }, h('span', {}, 'Appearance'), theme),
-      h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour. GitHub allows about 500. Autosave slows down as this grows.`)),
+      h('div', { class: 'lbl' }, h('span', {}, 'Version'), h('p', { class: 'msg' }, `Ranker ${APP_VERSION} (built ${APP_BUILD})`)),
+      h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour on this browser. GitHub allows about 500, so autosave holds at ${AUTO_CAP} and Save stops at ${HARD_CAP}.`)),
       h('div', { class: 'lbl' }, h('span', {}, 'Repository'), h('p', { class: 'msg' }, S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected')),
       h('div', { class: 'row wrap' },
         btn('Change connection…', '', () => { m.close(); renderSetup(); }),
@@ -2339,7 +2640,8 @@ async function renderHome() {
     h('div', { class: 'home-actions' },
       btn('New board', 'primary', createBoardFlow),
       btn('Import board', '', () => importFlow(true))),
-    list));
+    list,
+    h('footer', { class: 'app-ver' }, `Ranker ${APP_VERSION}`)));
   paintHome(list);
   // Refresh in the background, so changes from other devices show up.
   try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); }
@@ -2370,7 +2672,7 @@ function boardCardMenu(anchor, bd) {
     { label: 'Move earlier', disabled: i <= 0, onClick: () => moveBoard(bd.id, -1) },
     { label: 'Move later', disabled: i >= S.index.boards.length - 1, onClick: () => moveBoard(bd.id, 1) },
     { divider: true },
-    { label: 'Delete…', danger: true, onClick: () => deleteBoard(bd.id, false) }
+    { label: 'Delete', danger: true, onClick: () => deleteBoard(bd.id, false) }
   ]);
 }
 const refreshHome = () => { const l = $('.board-grid'); if (l) paintHome(l); };
@@ -2388,12 +2690,10 @@ async function createBoardFlow() {
 }
 async function createBoardRemote(b) {
   const bp = boardPath(b.id), dir = imgDir(b.id);
-  const imgs = [...referencedImages(b)].filter(f => S.imgs.has(f));
-  if (!imgs.length) {
-    await putFile(bp, ser(b, 2), null);
-  } else {
-    await commitFiles(`Create ${b.title || 'board'}`, () => ({ upload: [{ path: bp, text: ser(b, 2) }, ...imgs.map(f => ({ path: dir + f, blob: S.imgs.get(f).blob }))] }));
-  }
+  const message = `Create ${b.title || 'board'}`;
+  // Images first, board last: a board never points at a missing file. One write each.
+  for (const f of [...referencedImages(b)].filter(f => S.imgs.has(f))) await putImage(dir + f, S.imgs.get(f).blob, message);
+  await putFile(bp, ser(b, 2), null, message);
   await syncIndexEntry(b);
 }
 async function renameBoardRemote(bd) {
@@ -2462,7 +2762,11 @@ async function doRoute() {
       if (!(await resolveUnsaved())) { history.replaceState(null, '', '#/b/' + S.board.id); return; }
     }
     if (S.dirty && !S.conflict) await saveNow(false);
-    if (S.dirty && !S.conflict) toast('Your last changes could not be saved.');
+    if (S.dirty && !S.conflict) toast(S.draftOk ? 'Your last changes could not be saved yet. They are kept on this device.' : 'Your last changes could not be saved.');
+    if (!S.dirty && !S.conflict) {
+      const plan = housekeepingPlan();
+      if (plan && (plan.metaChanged || plan.orphans.length) && writesLastHour() < AUTO_CAP && backoffLeftMs() === 0) { renderLoading('Finishing up…'); await flushHousekeeping(); }
+    }
   }
   if (m) { await openBoard(m[1]); return; }
   try { if (!S.index.sha && !S.index.boards.length) await loadIndex(); } catch (e) { renderFatal(e); return; }
@@ -2497,18 +2801,26 @@ function onKeys(e) {
 
 function boot() {
   S.prefs = Object.assign(S.prefs, lsGet('tl.prefs', {}));
+  // An earlier build stored the label width in pixels. Convert it to a multiple of the label text size.
+  if (S.prefs.labelW && !S.prefs.labelEm) S.prefs.labelEm = Math.round((S.prefs.labelW / Math.min(26, Math.max(14, tileSize() * 0.22))) * 100) / 100;
+  delete S.prefs.labelW;
   S.cfg = lsGet('tl.cfg', null);
   applyTheme();
   document.addEventListener('keydown', onKeys);
   window.addEventListener('hashchange', route);
-  window.addEventListener('beforeunload', e => { if (S.board && S.dirty) { if (!S.pauseAuto) saveNow(false); e.preventDefault(); e.returnValue = ''; } });
+  // Leaving the page: keep the work in the local draft. Ask first only when that copy isn't safe yet.
+  window.addEventListener('beforeunload', e => {
+    if (!(S.board && S.dirty)) return;
+    if (!S.pauseAuto) flushDraft();
+    if (S.pauseAuto || !S.draftOk || S.draftDirty) { e.preventDefault(); e.returnValue = ''; }
+  });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (S.board && S.dirty && !S.pauseAuto) saveNow(false); }
+    if (document.hidden) { if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
     else checkRemote();
   });
-  window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) saveNow(false); });
+  window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) flushDraft(); });
   window.addEventListener('focus', checkRemote);
-  setInterval(tick, 2000);
+  setInterval(() => tick(), 2000);
   bindFileDrop();
   route();
 }

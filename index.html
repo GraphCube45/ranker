@@ -92,8 +92,9 @@ button { cursor: pointer; }
 .status.busy .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
 .status .short { display: none; }
-button.status { border: 0; background: transparent; height: 36px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
-button.status:hover { background: var(--fill); }
+button.status { border: 0; background: transparent; height: 36px; border-radius: 10px; transition: background 0.15s; }
+button.status.clickable { cursor: pointer; }
+button.status.clickable:hover { background: var(--fill); }
 @media (max-width: 520px) {
   .status .long { display: none; }
   .status .short { display: inline; }
@@ -257,18 +258,19 @@ textarea.field { resize: vertical; line-height: 1.4; }
 
 /* Menu */
 .menu { position: fixed; z-index: 150; min-width: 200px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg), 0 0 0 1px var(--sep); padding: 6px; animation: fade 0.12s; }
-.menu-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 9px 12px; border-radius: 8px; font-size: 14.5px; }
+.menu-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; padding: 9px 12px; border-radius: 8px; font-size: 14.5px; }
 .menu-item:hover:not(:disabled) { background: var(--accent); color: #fff; }
 .menu-item.danger { color: var(--danger); }
 .menu-item.danger:hover { background: var(--danger); color: #fff; }
 .menu-item:disabled { opacity: 0.4; cursor: default; }
+.menu-check { width: 16px; flex: none; display: inline-flex; justify-content: center; }
 .menu-sep { height: 1px; background: var(--sep); margin: 5px 6px; }
 
 /* Toasts */
 #toasts { position: fixed; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 300; pointer-events: none; padding: 0 16px; }
 .toast { pointer-events: auto; background: #2c2c2e; color: #f5f5f7; padding: 10px 16px; border-radius: 14px; box-shadow: var(--shadow-lg); font-size: 14px; max-width: 460px; display: flex; gap: 14px; align-items: center; animation: rise 0.2s ease-out; }
 .toast.out { opacity: 0; transition: opacity 0.2s; }
-.toast-act { border: 0; background: none; color: #64a9ff; font-weight: 600; padding: 0; }
+.toast-act { border: 0; background: none; color: #64a9ff; font-weight: 600; padding: 0; white-space: nowrap; flex: none; }
 
 /* Viewer */
 .viewer { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 56px 56px 40px; animation: fade 0.16s; }
@@ -315,6 +317,18 @@ body.file-over::after { content: "Drop images to add them"; position: fixed; ins
 }
 .app-ver { margin: 32px 0 8px; text-align: center; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 
+/* Board banner */
+.banner { position: relative; width: 100%; aspect-ratio: 4 / 1; border-radius: 18px; overflow: hidden; background: var(--fill); box-shadow: var(--shadow); margin-bottom: 10px; }
+.banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.banner.loading::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%); animation: shimmer 1.3s infinite; }
+.banner.banner-prev { display: flex; align-items: center; justify-content: center; color: var(--text-3); margin: 0; box-shadow: none; }
+@media (max-width: 640px) { .banner { aspect-ratio: 5 / 2; border-radius: 14px; } }
+
+/* Board list: manual drag order */
+.board-grid.manual .board-card-wrap { touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.board-card-wrap.dragging { opacity: 0.28; }
+.board-ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; box-shadow: var(--shadow-lg); border-radius: 18px; opacity: 0.96; will-change: transform; transition: none; }
+
 </style>
 </head>
 <body>
@@ -329,14 +343,18 @@ body.file-over::after { content: "Drop images to add them"; position: fixed; ins
 // 1.2.0  Fewer GitHub writes, shared rate-limit protection, local drafts, item search, tier editor changes.
 // 1.3.0  Use without GitHub (boards kept in this browser), export all boards, storage meter, import space check,
 //        move local boards to GitHub, JPEG import fix, unique names for duplicated boards.
-const APP_VERSION = '1.3.0';
-const APP_BUILD = '2026-11-11';
+// 1.4.0  Board sorting (name, item count, date created, date modified, manual with drag and drop), board banner,
+//        item names switch is now the same for all boards, imported boards with an existing name get " copy",
+//        highlight on the Saved locally chip in boards, Export all button no longer wraps.
+const APP_VERSION = '1.4.0';
+const APP_BUILD = '2026-11-12';
 
 // ---------- Utilities ----------
 const $ = (s, r = document) => r.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
 const MAX_DIM = 800;
+const COVER_DIM = 1600;
 const MAX_FILE = 50 * 1024 * 1024;
 const MAX_URL = 25 * 1024 * 1024;
 
@@ -381,7 +399,8 @@ const ICONS = {
   dot: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
   upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/>',
   left: '<path d="M15 5l-7 7 7 7"/>',
-  right: '<path d="M9 5l7 7-7 7"/>'
+  right: '<path d="M9 5l7 7-7 7"/>',
+  chevdown: '<path d="M6 9l6 6 6-6"/>'
 };
 function icon(name, size = 20) {
   const s = h('span', { class: 'ico', 'aria-hidden': 'true' });
@@ -469,9 +488,9 @@ const S = {
   cfg: null,
   mode: null,        // 'github' (synced), 'local' (this browser only), or null (not chosen yet)
   // Device-only settings (saved in this browser, never synced): theme, tile size, tier label width.
-  prefs: { theme: 'auto', size: null, labelEm: null },
-  // Per-board, per-device view settings: names shown, image fit. Loaded when a board opens.
-  view: { names: true, fit: 'fill' },
+  prefs: { theme: 'auto', size: null, labelEm: null, names: true, sort: 'manual', sortDir: null },
+  // Per-board, per-device view setting: image fit. Loaded when a board opens. (Item names are a device-wide pref.)
+  view: { fit: 'fill' },
   search: '',        // item search text: session only, never saved
   pauseAuto: false,   // session only: reset whenever a board is opened
   writeCap: 350,      // write limit in force for the current save (see HARD_CAP and AUTO_CAP)
@@ -481,7 +500,7 @@ const S = {
   hkRunning: false,
   limitNotified: false,
   repo: { commit: null, files: new Map() },
-  index: { boards: [], sha: null },
+  index: { boards: [], order: [], sha: null },
   board: null,
   boardSha: null,
   lastSavedJson: '',
@@ -492,8 +511,13 @@ const S = {
   imgs: new Map(), imgFail: new Set(), imgLoading: Promise.resolve(), loadToken: 0
 };
 const isLocal = () => S.mode === 'local';
+// Set the board list from index.json data. A manual order not yet written to GitHub wins over older data.
+function setIndex(idx, sha) {
+  const order = Array.isArray(idx.order) ? idx.order.filter(x => typeof x === 'string') : [];
+  S.index = { boards: idx.boards, order: orderPending || order, sha };
+}
 function resetData() {
-  S.index = { boards: [], sha: null };
+  S.index = { boards: [], order: [], sha: null };
   S.repo = { commit: null, files: new Map() };
 }
 
@@ -746,7 +770,7 @@ async function updateIndex(mutator) {
     mutator(idx);
     try {
       const r = await putFile('index.json', JSON.stringify(idx, null, 2), f ? f.sha : null);
-      S.index = { boards: idx.boards, sha: r.sha };
+      setIndex(idx, r.sha);
       S.repo.files.set('index.json', r.sha);
       S.repo.commit = r.commit;
       return;
@@ -760,7 +784,7 @@ async function updateIndex(mutator) {
 async function loadIndex() {
   const f = await getFile('index.json');
   const idx = f ? JSON.parse(f.text) : { boards: [] };
-  S.index = { boards: Array.isArray(idx.boards) ? idx.boards : [], sha: f ? f.sha : null };
+  setIndex({ boards: Array.isArray(idx.boards) ? idx.boards : [], order: idx.order }, f ? f.sha : null);
 }
 
 function friendlyError(e) {
@@ -890,6 +914,7 @@ async function restoreDraft(remoteSha) {
   for (const [f, blob] of d.blobs) if (!S.imgs.has(f)) S.imgs.set(f, { blob, url: URL.createObjectURL(blob) });
   const dir = imgDir(id);
   for (const it of Object.values(nb.items)) if (it.img && !S.imgs.has(it.img) && !S.repo.files.has(dir + it.img)) it.img = null;
+  if (nb.cover && !S.imgs.has(nb.cover) && !S.repo.files.has(dir + nb.cover)) nb.cover = null;
   S.board = nb;
   draftBlobKeys = new Set([...d.blobs.keys()].map(f => draftKey(id) + '/' + f));
   recomputeDirty();
@@ -1036,7 +1061,7 @@ const L = {
 
 // Save a board: images, board.json, its list entry, and the removal of unused images, all in one transaction.
 async function doSaveLocal(b, text) {
-  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b), meta = boardMeta(b);
+  const bp = boardPath(b.id), dir = imgDir(b.id), refd = referencedImages(b), meta = { ...boardMeta(b), modified: Date.now() };
   const range = IDBKeyRange.bound(dir, dir + '\uffff');
   const r = await L.tx(['files', 'blobs'], 'readwrite', async (f, bl) => {
     const cur = await idbReq(f.get(bp));
@@ -1065,11 +1090,11 @@ async function doSaveLocal(b, text) {
   for (const [p, s] of r.added) S.repo.files.set(p, s);
   for (const p of r.removed) S.repo.files.delete(p);
   S.repo.commit = 'local';
-  S.index = { boards: r.idx.boards, sha: 'local' };
+  setIndex(r.idx, 'local');
 }
 // Create a board with all its images in one transaction. If space runs out, nothing is added.
 async function localCreateBoard(b) {
-  const bp = boardPath(b.id), dir = imgDir(b.id), meta = boardMeta(b);
+  const bp = boardPath(b.id), dir = imgDir(b.id), now = Date.now(), meta = { ...boardMeta(b), created: now, modified: now };
   const idx = await L.tx(['files', 'blobs'], 'readwrite', async (f, bl) => {
     for (const name of referencedImages(b)) {
       const rec = S.imgs.get(name);
@@ -1084,7 +1109,7 @@ async function localCreateBoard(b) {
     await idbReq(f.put({ path: 'index.json', sha: lsha(), text: JSON.stringify(ix, null, 2) }));
     return ix;
   });
-  S.index = { boards: idx.boards, sha: 'local' };
+  setIndex(idx, 'local');
 }
 
 // Browser storage: usage, quota, and protection from automatic cleanup. The numbers are estimates.
@@ -1127,11 +1152,12 @@ async function confirmRoom(bytes) {
 const DEFAULT_TIERS = [['S', '#ff6b6b'], ['A', '#ffa94d'], ['B', '#ffd43b'], ['C', '#a9e34b'], ['D', '#4dabf7']];
 const PALETTE = ['#ff6b6b', '#ff8a5b', '#ffa94d', '#ffd43b', '#a9e34b', '#51cf66', '#38d9a9', '#3bc9db', '#4dabf7', '#748ffc', '#9775fa', '#da77f2', '#f783ac', '#adb5bd', '#6e6e73'];
 const NOTE_MAX = 2000;
+const clampY = v => (typeof v === 'number' && isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 50);
 const safeFile = f => (typeof f === 'string' && /^[\w.-]{1,80}$/.test(f) ? f : null);
 
 function newBoard(title, description) {
   return {
-    id: uid(), title: title || '', description: description || '',
+    id: uid(), title: title || '', description: description || '', cover: null, coverY: 50,
     tiers: DEFAULT_TIERS.map(([name, color]) => ({ id: uid(), name, color, items: [] })),
     pool: [], items: {}
   };
@@ -1145,6 +1171,7 @@ function ser(b, indent) {
   }
   return JSON.stringify({
     v: 1, id: b.id, title: b.title, description: b.description,
+    ...(b.cover ? { cover: b.cover, coverY: clampY(b.coverY) } : {}),
     tiers: b.tiers.map(t => ({ id: t.id, name: t.name, color: t.color, items: t.items })),
     pool: b.pool, items
   }, null, indent);
@@ -1154,7 +1181,8 @@ function parseBoard(text) {
   const b = {
     id: String(o.id || ''), title: String(o.title || ''), description: String(o.description || ''),
     // Older boards stored these in board.json. They are now per device, so keep them only as first-time defaults.
-    legacy: { names: o.showNames !== false, fit: o.fit === 'fit' ? 'fit' : 'fill' },
+    legacy: { fit: o.fit === 'fit' ? 'fit' : 'fill' },
+    cover: safeFile(o.cover), coverY: clampY(o.coverY),
     tiers: [], pool: [], items: {}
   };
   for (const [k, v] of Object.entries(o.items || {})) {
@@ -1171,7 +1199,7 @@ function parseBoard(text) {
   return b;
 }
 const hasImage = it => !!(it.img || it.link);
-const referencedImages = b => { const s = new Set(); for (const it of Object.values(b.items)) if (it.img) s.add(it.img); return s; };
+const referencedImages = b => { const s = new Set(); for (const it of Object.values(b.items)) if (it.img) s.add(it.img); if (b.cover) s.add(b.cover); return s; };
 const boardPath = id => `boards/${id}/board.json`;
 const imgDir = id => `boards/${id}/img/`;
 function findZone(b, id) {
@@ -1242,6 +1270,7 @@ async function saveNow(manual) {
     try {
       await doSave(b, text);
       S.lastSavedJson = compact; S.lastSaveEnd = Date.now(); S.savedAt = new Date(); S.errNotified = false;
+      if (!isLocal()) setPendMod(b.id, Date.now());
       return true;
     } catch (e) {
       if (e instanceof Conflict) { await prepareConflict(); return false; }
@@ -1265,7 +1294,15 @@ class Retry extends Error {}
 
 // The board list stores just enough to draw a card: title, description, tier colors, item count.
 const boardMeta = b => ({ title: b.title, description: b.description, colors: b.tiers.map(t => t.color), count: Object.keys(b.items).length });
-const metaKey = m => JSON.stringify([m.title, m.description || '', m.colors || [], m.count || 0]);
+const metaKey = m => JSON.stringify([m.title, m.description || '', m.colors || [], m.count || 0, m.modified || 0]);
+// When a board was last saved on this device. It reaches index.json with the next housekeeping write, so a
+// save never costs an extra request. Kept in this browser so it survives a tab closed before housekeeping ran.
+const pendMod = id => Number((lsGet('tl.modpend', {}) || {})[id]) || 0;
+function setPendMod(id, v) {
+  const m = lsGet('tl.modpend', {}) || {};
+  if (v) m[id] = v; else delete m[id];
+  lsSet('tl.modpend', m);
+}
 
 // Cost of a save: one write for board.json, plus one per image that is not on GitHub yet.
 // Nothing else is written here. The board list and unused images are tidied later (flushHousekeeping).
@@ -1292,10 +1329,12 @@ async function doSave(b, text) {
 }
 
 // Used when creating, duplicating, or importing a board, which write the list on their own.
-async function syncIndexEntry(b) {
-  const meta = boardMeta(b);
+async function syncIndexEntry(b, extra) {
   const e = S.index.boards.find(x => x.id === b.id);
-  if (e && metaKey(e) === metaKey(meta)) return;
+  const meta = { ...boardMeta(b) };
+  for (const k of ['created', 'modified']) { const v = extra && extra[k]; if (v) meta[k] = v; }
+  if (e && !meta.modified && e.modified) meta.modified = e.modified;
+  if (e && metaKey(e) === metaKey(meta) && (!meta.created || e.created)) return;
   await updateIndex(idx => {
     const x = idx.boards.find(y => y.id === b.id);
     if (x) Object.assign(x, meta);
@@ -1316,8 +1355,10 @@ function housekeepingPlan() {
   const id = S.board.id, dir = imgDir(id);
   const keep = new Set([...referencedImages(saved), ...referencedImages(S.board)]);
   const orphans = [...S.repo.files.keys()].filter(p => p.startsWith(dir) && !p.slice(dir.length).includes('/') && !keep.has(p.slice(dir.length)));
-  const meta = boardMeta(saved);
   const entry = S.index.boards.find(x => x.id === id);
+  const meta = boardMeta(saved);
+  const mod = Math.max(pendMod(id), (entry && entry.modified) || 0);
+  if (mod) meta.modified = mod;
   return { id, title: saved.title, meta, orphans, metaChanged: !entry || metaKey(entry) !== metaKey(meta) };
 }
 async function flushHousekeeping() {
@@ -1348,7 +1389,7 @@ async function flushHousekeeping() {
             if (idxText && (files.get('index.json') || null) !== idxSha) throw new Retry();
             return { upload: idxText ? [{ path: 'index.json', text: idxText }] : [], remove: plan.orphans };
           });
-          if (idx) S.index = { boards: idx.boards, sha: res.files.get('index.json') };
+          if (idx) setIndex(idx, res.files.get('index.json'));
           break;
         } catch (e) { if (e instanceof Retry) continue; throw e; }
       }
@@ -1360,6 +1401,7 @@ async function flushHousekeeping() {
       if (plan.metaChanged) await updateIndex(applyMeta);
     }
     S.hkRetryAt = 0;
+    if (pendMod(plan.id) && pendMod(plan.id) <= (plan.meta.modified || 0)) setPendMod(plan.id, 0);
     return true;
   } catch {
     S.hkRetryAt = Date.now() + 10 * 60 * 1000; // don't spend more writes on a failing cleanup
@@ -1480,13 +1522,13 @@ function canvasToBlob(c, type, q) { return new Promise(res => c.toBlob(res, type
 
 // WebP at or under 800 px is kept unchanged. Everything else becomes WebP, at most 800 px.
 // Browsers that can't encode WebP (some Safari versions) keep a small JPEG unchanged and re-encode anything else as JPEG.
-async function processImage(blob) {
+async function processImage(blob, maxDim = MAX_DIM) {
   const url = URL.createObjectURL(blob);
   try {
     const img = await loadImg(url);
-    const w = img.naturalWidth || MAX_DIM, h2 = img.naturalHeight || MAX_DIM;
-    if (blob.type === 'image/webp' && Math.max(w, h2) <= MAX_DIM) return { blob, ext: 'webp' };
-    const s = Math.min(1, MAX_DIM / Math.max(w, h2));
+    const w = img.naturalWidth || maxDim, h2 = img.naturalHeight || maxDim;
+    if (blob.type === 'image/webp' && Math.max(w, h2) <= maxDim) return { blob, ext: 'webp' };
+    const s = Math.min(1, maxDim / Math.max(w, h2));
     const tw = Math.max(1, Math.round(w * s)), th = Math.max(1, Math.round(h2 * s));
     let src = img, cw = w, ch = h2;
     while (cw / 2 > tw && ch / 2 > th) {
@@ -1505,7 +1547,7 @@ async function processImage(blob) {
     if (out && out.type === 'image/webp') return { blob: out, ext: 'webp' };
     // This browser can't encode WebP. A JPEG that is already small enough stays as it is,
     // so it isn't compressed a second time and its bytes stay identical.
-    if (blob.type === 'image/jpeg' && Math.max(w, h2) <= MAX_DIM) return { blob, ext: 'jpg' };
+    if (blob.type === 'image/jpeg' && Math.max(w, h2) <= maxDim) return { blob, ext: 'jpg' };
     const c2 = document.createElement('canvas');
     c2.width = tw; c2.height = th;
     const x2 = c2.getContext('2d');
@@ -1686,9 +1728,11 @@ function closeMenu() {
 function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
 function openMenu(anchor, items) {
   closeMenu();
+  const checks = items.some(it => 'checked' in it);
   const m = h('div', { class: 'menu', role: 'menu' }, items.map(it => it.divider
     ? h('div', { class: 'menu-sep' })
-    : h('button', { class: 'menu-item' + (it.danger ? ' danger' : ''), type: 'button', role: 'menuitem', disabled: !!it.disabled, onclick: () => { closeMenu(); it.onClick(); } }, it.label)));
+    : h('button', { class: 'menu-item' + (it.danger ? ' danger' : ''), type: 'button', role: checks ? 'menuitemradio' : 'menuitem', 'aria-checked': checks ? String(!!it.checked) : null, disabled: !!it.disabled, onclick: () => { closeMenu(); it.onClick(); } },
+      checks ? h('span', { class: 'menu-check' }, it.checked ? icon('check', 14) : null) : null, it.label)));
   document.body.append(m);
   const r = anchor.getBoundingClientRect();
   const mw = m.offsetWidth, mh = m.offsetHeight;
@@ -1744,7 +1788,7 @@ function tileEl(id) {
   const it = S.board.items[id];
   if (!it) return null;
   const url = imgUrl(it);
-  const showName = S.view.names && it.name;
+  const showName = namesOn() && it.name;
   const loading = it.img && !S.imgs.has(it.img) && !S.imgFail.has(it.img) && !it.link;
   const media = h('div', { class: 'tile-media' + (url ? '' : ' ph') });
   if (url) {
@@ -1753,26 +1797,27 @@ function tileEl(id) {
     media.append(im);
   } else {
     media.classList.toggle('loading', !!loading);
-    if (!loading) media.append(it.name && !S.view.names ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
+    if (!loading) media.append(it.name && !namesOn() ? h('span', { class: 'ph-name' }, it.name) : icon('image', 22));
   }
   return h('div', { class: 'tile fit-' + S.view.fit + (showName ? ' named' : ''), 'data-id': id, tabindex: '0', role: 'button', 'aria-label': it.name || 'Untitled item', title: it.name || null },
     media, showName ? h('div', { class: 'tile-name' }, h('span', { class: 'tile-name-t' }, it.name)) : null);
 }
 
-// Names and image fit are per board and per device. They live in this browser only.
+// Image fit is per board and per device. Item names are one switch for all boards on this device. Both live in this browser only.
 function viewOf(b) {
   const v = (lsGet('tl.views', {}) || {})[b.id] || {};
   const lg = b.legacy || {};
   return {
-    names: typeof v.names === 'boolean' ? v.names : lg.names !== false,
     fit: v.fit === 'fit' || v.fit === 'fill' ? v.fit : (lg.fit || 'fill')
   };
 }
 function loadView(b) { S.view = viewOf(b); }
+const namesOn = () => S.prefs.names !== false;
+function setNames(on) { S.prefs.names = !!on; savePrefs(); renderBody(); }
 function setView(patch) {
   Object.assign(S.view, patch);
   const all = lsGet('tl.views', {}) || {};
-  all[S.board.id] = { names: S.view.names, fit: S.view.fit };
+  all[S.board.id] = { fit: S.view.fit };
   lsSet('tl.views', all);
   renderBody();
 }
@@ -1895,6 +1940,7 @@ function searchBox() {
 
 function onImageReady(f) {
   if (!$('#boardBody') || !S.board) return;
+  if (S.board.cover === f) syncBanner();
   for (const t of document.querySelectorAll('.tile')) {
     const it = S.board.items[t.dataset.id];
     if (it && it.img === f) { const n = tileEl(it.id); if (n) t.replaceWith(n); }
@@ -1907,6 +1953,63 @@ function syncHeader() {
   const t = $('#boardTitle'), d = $('#boardDesc');
   if (t && document.activeElement !== t) t.value = b.title;
   if (d && document.activeElement !== d) { d.value = b.description; autoGrow(d); }
+  syncBanner();
+}
+// The banner is a wide image above the title. A board without one shows nothing there.
+function syncBanner() {
+  const b = S.board, host = $('#boardBanner');
+  if (!b || !host) return;
+  const rec = b.cover ? S.imgs.get(b.cover) : null;
+  if (!b.cover || (!rec && S.imgFail.has(b.cover))) { host.hidden = true; host.classList.remove('loading'); host.replaceChildren(); return; }
+  host.hidden = false;
+  if (rec) {
+    let im = host.querySelector('img');
+    if (!im || im.getAttribute('src') !== rec.url) { im = h('img', { src: rec.url, alt: '', decoding: 'async' }); host.replaceChildren(im); }
+    im.style.objectPosition = `50% ${clampY(b.coverY)}%`;
+    host.classList.remove('loading');
+  } else {
+    host.replaceChildren();
+    host.classList.add('loading');
+  }
+}
+function editBanner() {
+  const st = { img: S.board.cover || null, y: clampY(S.board.coverY) };
+  const prev = h('div', { class: 'banner banner-prev' });
+  const slider = h('input', { type: 'range', min: '0', max: '100', step: '1', value: String(st.y), 'aria-label': 'Vertical position' });
+  const pos = h('label', { class: 'lbl' }, h('span', {}, 'Vertical position'), slider);
+  const removeBtn = btn('Remove banner', 'ghost sm', () => { st.img = null; paint(); });
+  function paint() {
+    const rec = st.img ? S.imgs.get(st.img) : null;
+    if (rec) { const im = h('img', { src: rec.url, alt: '' }); im.style.objectPosition = `50% ${st.y}%`; prev.replaceChildren(im); }
+    else prev.replaceChildren(icon('image', 36));
+    removeBtn.style.display = st.img ? '' : 'none';
+    pos.style.display = st.img ? '' : 'none';
+  }
+  slider.addEventListener('input', () => { st.y = Number(slider.value); const im = prev.querySelector('img'); if (im) im.style.objectPosition = `50% ${st.y}%`; });
+  const setImage = file => { st.img = file; st.y = 50; slider.value = '50'; paint(); };
+  const uploadBtn = btn('Upload image…', 'sm', async () => {
+    const [f] = await pickFiles(false);
+    if (!f) return;
+    try { setImage(await imageFromFile(f, COVER_DIM)); } catch (e) { toast(imgErrorText(e)); }
+  });
+  const urlBtn = btn('From URL…', 'sm', async () => {
+    const v = await promptBox({ title: 'Banner URL', placeholder: 'https://example.com/banner.jpg', confirm: 'Use image' });
+    if (!v) return;
+    const u = v.trim();
+    if (!/^https?:\/\//i.test(u)) { toast('Enter a full web address that starts with https://'); return; }
+    try { const { blob } = await fetchFromUrl(u); setImage(registerImage(await processImage(blob, COVER_DIM))); }
+    catch (e) { toast(e.code === 'blocked' ? 'The site blocks copying its images. Download the image, then upload the file.' : imgErrorText(e)); }
+  });
+  const m = modal({
+    title: 'Banner', wide: true,
+    body: h('div', { class: 'stack' },
+      prev,
+      h('p', { class: 'hint' }, 'A wide image shown above the board title. Images about 4:1 work best. Other shapes are cropped.'),
+      h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, removeBtn),
+      pos),
+    actions: [btn('Cancel', '', () => m.close()), btn('Save', 'primary', () => { m.close(); mutate(b => { b.cover = st.img || null; b.coverY = st.img ? st.y : 50; }); })]
+  });
+  paint();
 }
 function autoGrow(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
@@ -1933,7 +2036,8 @@ function renderStatus() {
   el.replaceChildren(h('i', { class: 'dot' }), h('span', { class: 'long' }, text), h('span', { class: 'short' }, short));
   el.title = S.err ? friendlyError(S.err) : (isLocal() ? 'Stored only in this browser. Select for details.' : (S.savedAt ? 'Last saved ' + S.savedAt.toLocaleTimeString() : ''));
   el.onclick = S.conflict ? showConflict : (S.err ? () => saveNow(true) : (isLocal() ? showLocalInfo : null));
-  el.style.cursor = el.onclick ? 'pointer' : 'default';
+  el.classList.toggle('clickable', !!el.onclick);
+  el.tabIndex = el.onclick ? 0 : -1;
   if (sb) sb.disabled = S.saving || (!S.dirty && !S.err && !S.conflict);
 }
 function renderTopbar() { renderStatus(); updateUndoButtons(); }
@@ -1982,7 +2086,7 @@ function renderBoardScreen() {
       h('div', { class: 'spacer' }),
       h('button', { class: 'icon-btn', id: 'undoBtn', type: 'button', 'aria-label': 'Undo', title: 'Undo', onclick: doUndo }, icon('undo')),
       h('button', { class: 'icon-btn', id: 'redoBtn', type: 'button', 'aria-label': 'Redo', title: 'Redo', onclick: doRedo }, icon('redo')),
-      h('div', { id: 'saveStatus', class: 'status ok', role: 'status', 'aria-live': 'polite' }),
+      h('button', { id: 'saveStatus', class: 'status ok', type: 'button', 'aria-live': 'polite' }),
       h('button', { class: 'btn primary sm', id: 'saveBtn', type: 'button', onclick: () => saveNow(true) }, 'Save'),
       themeButton(),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Board options', onclick: e => boardMenu(e.currentTarget) }, icon('more'))));
@@ -1990,15 +2094,16 @@ function renderBoardScreen() {
   const fitSeg = segmented([['fill', 'Fill'], ['fit', 'Fit']], S.view.fit, v => { fitSeg.set(v); setView({ fit: v }); }, 'Image fit');
   const controls = h('div', { class: 'controls' },
     h('label', { class: 'size-ctl' }, h('span', {}, 'Size'), slider),
-    h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: S.view.names, onchange: e => setView({ names: e.target.checked }) }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
+    h('label', { class: 'switch' }, h('input', { type: 'checkbox', checked: namesOn(), onchange: e => setNames(e.target.checked) }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
     fitSeg, searchBox());
 
   const app = $('#app');
   app.replaceChildren(top,
     h('main', { class: 'board-main' },
-      h('div', { class: 'board-head' }, title, desc, controls),
+      h('div', { class: 'board-head' }, h('div', { id: 'boardBanner', class: 'banner', hidden: true }), title, desc, controls),
       h('div', { id: 'boardBody', class: 'board-body' })));
   autoGrow(desc);
+  syncBanner();
   renderBody();
   renderTopbar();
   initDnD();
@@ -2053,6 +2158,7 @@ function togglePause() {
 function boardMenu(anchor) {
   openMenu(anchor, [
     { label: 'Rename board…', onClick: async () => { const v = await promptBox({ title: 'Rename board', value: S.board.title, confirm: 'Rename' }); if (v != null) { mutate(b => { b.title = v.trim(); }); syncHeader(); } } },
+    { label: 'Banner…', onClick: editBanner },
     { label: 'Add items…', onClick: openAddItems },
     { label: 'Add tier…', onClick: () => addTier() },
     { divider: true },
@@ -2170,7 +2276,7 @@ function initDnD() {
   document.addEventListener('pointerup', onUp);
   document.addEventListener('pointercancel', () => cancelDrag());
   // Once a drag is active, stop the page from scrolling under the finger.
-  document.addEventListener('touchmove', e => { if (drag && drag.active) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => { if ((drag && drag.active) || (bdrag && bdrag.active)) e.preventDefault(); }, { passive: false });
   window.addEventListener('blur', () => cancelDrag());
 }
 
@@ -2361,9 +2467,9 @@ async function imageFromUrl(raw) {
     return null;
   }
 }
-async function imageFromFile(file) {
+async function imageFromFile(file, maxDim) {
   if (file.size > MAX_FILE) throw new Error(`${file.name} is larger than 50 MB.`);
-  const out = await processImage(file);
+  const out = await processImage(file, maxDim);
   return registerImage(out);
 }
 
@@ -2613,10 +2719,15 @@ async function packBoard(b, view, blobOf, onItem) {
     items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
     if (onItem) onItem(++n, ids.length);
   }
+  let cover = null;
+  if (b.cover) {
+    const blob = await blobOf(b.cover);
+    if (blob) cover = await blobToDataURL(blob); else missing++;
+  }
   return {
     missing,
     board: {
-      title: b.title, description: b.description, showNames: view.names, fit: view.fit,
+      title: b.title, description: b.description, fit: view.fit, ...(cover ? { cover, coverY: clampY(b.coverY) } : {}),
       tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
       pool: b.pool, items
     }
@@ -2710,7 +2821,7 @@ function parseExportBoard(bd) {
   const tiers = (Array.isArray(bd.tiers) ? bd.tiers : []).map(t => ({ name: String((t && t.name) ?? '').slice(0, 40), color: normHex(t && t.color) || '#8e8e93', items: take(t && t.items) }));
   const pool = take(bd.pool);
   for (const id of Object.keys(items)) if (!used.has(id)) pool.push(id);
-  return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), showNames: bd.showNames !== false, fit: bd.fit === 'fit' ? 'fit' : 'fill', tiers, pool, items };
+  return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), fit: bd.fit === 'fit' ? 'fit' : 'fill', cover: typeof bd.cover === 'string' && /^data:image\//.test(bd.cover) ? bd.cover : null, coverY: clampY(bd.coverY), tiers, pool, items };
 }
 // A file holds one board (Export board) or several (Export all boards). Returns a list either way.
 function parseExportAll(text) {
@@ -2722,11 +2833,11 @@ function parseExportAll(text) {
   return list.map(parseExportBoard);
 }
 
-async function importedImage(it) {
+async function importedImage(it, maxDim) {
   if (!it.image) return null;
   const blob = dataURLToBlob(it.image);
   if (!blob) return null;
-  try { return registerImage(await processImage(blob)); } catch { return null; }
+  try { return registerImage(await processImage(blob, maxDim)); } catch { return null; }
 }
 
 async function importFlow(asNew) {
@@ -2744,7 +2855,9 @@ async function importFlow(asNew) {
 
 // Create one board from export data. Returns its id.
 async function importOneBoard(data, fallbackTitle, label, pb) {
-  const b = newBoard(data.title || fallbackTitle || 'Imported board', data.description);
+  let title = data.title || fallbackTitle || 'Imported board';
+  if (S.index.boards.some(x => norm(x.title) === norm(title))) title = copyTitle(title);
+  const b = newBoard(title, data.description);
   b.tiers = []; b.pool = []; b.items = {};
   try {
     const idMap = {};
@@ -2759,10 +2872,14 @@ async function importOneBoard(data, fallbackTitle, label, pb) {
       b.items[id] = { id, name: src.name, img, link: img ? null : src.link, note: src.note };
     }
     const views = lsGet('tl.views', {}) || {};
-    views[b.id] = { names: data.showNames, fit: data.fit };
+    views[b.id] = { fit: data.fit };
     lsSet('tl.views', views);
     for (const t of data.tiers) b.tiers.push({ id: uid(), name: t.name, color: t.color, items: t.items.map(i => idMap[i]).filter(Boolean) });
     b.pool = data.pool.map(i => idMap[i]).filter(Boolean);
+    if (data.cover) {
+      const c = await importedImage({ image: data.cover }, COVER_DIM);
+      if (c) { b.cover = c; b.coverY = data.coverY; }
+    }
     pb.set(ids.length, ids.length, label + 'Uploading');
     await createBoardRemote(b);
     return b.id;
@@ -2989,7 +3106,7 @@ async function verifyConnection(owner, repo, token) {
 
 // ---------- Boards stored on this device: status, backup reminder, moving to GitHub ----------
 function localChip() {
-  return h('button', { class: 'status warn', type: 'button', title: 'Stored only in this browser. Select for details.', onclick: showLocalInfo },
+  return h('button', { class: 'status warn clickable', type: 'button', title: 'Stored only in this browser. Select for details.', onclick: showLocalInfo },
     h('i', { class: 'dot' }), h('span', { class: 'long' }, 'Saved locally'), h('span', { class: 'short' }, 'Local'));
 }
 function showLocalInfo() {
@@ -3052,7 +3169,7 @@ async function moveLocalFlow(skipConfirm) {
           else for (const it of Object.values(b.items)) if (it.img === name) it.img = null;
         }
         await putFile(boardPath(b.id), ser(b, 2), null, message);
-        await syncIndexEntry(b);
+        await syncIndexEntry(b, { created: e.created, modified: e.modified });
       }
       await L.dropBoard(e.id);
       pb.set(++done, idx.length, 'Moved');
@@ -3125,6 +3242,7 @@ async function renderHome() {
   clearImages();
   S.board = null; S.dirty = false;
   const list = h('div', { class: 'board-grid' });
+  const sortBtn = h('button', { class: 'btn', id: 'sortBtn', type: 'button', 'aria-haspopup': 'menu', onclick: e => sortMenu(e.currentTarget) });
   const top = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-in' },
       h('h1', { class: 'brand' }, 'Ranker'),
@@ -3135,9 +3253,13 @@ async function renderHome() {
   $('#app').replaceChildren(top, h('main', { class: 'home-main' },
     h('div', { class: 'home-actions' },
       btn('New board', 'primary', createBoardFlow),
-      btn('Import boards', '', () => importFlow(true))),
+      btn('Import boards', '', () => importFlow(true)),
+      h('div', { class: 'spacer' }),
+      sortBtn),
     list,
     h('footer', { class: 'app-ver' }, `Ranker ${APP_VERSION}`)));
+  paintSortBtn();
+  initBoardDnD(list);
   paintHome(list);
   // Refresh in the background, so changes from other devices show up.
   try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); else if (isLocal()) toast(friendlyError(e)); }
@@ -3145,7 +3267,8 @@ async function renderHome() {
 }
 function paintHome(list) {
   if (!list.isConnected) return;
-  const boards = S.index.boards;
+  const boards = sortedBoards();
+  list.classList.toggle('manual', sortKey() === 'manual' && boards.length > 1);
   if (!boards.length) {
     list.replaceChildren(h('div', { class: 'empty' }, h('h2', {}, 'No boards yet'), h('p', { class: 'msg' }, 'Create a board to start ranking, or import one from a file.')));
     return;
@@ -3158,21 +3281,224 @@ function paintHome(list) {
       bd.description ? h('div', { class: 'card-desc' }, bd.description) : null,
       h('div', { class: 'card-meta' }, `${bd.count || 0} ${bd.count === 1 ? 'item' : 'items'}`));
     const more = h('button', { class: 'icon-btn card-more', type: 'button', 'aria-label': `Options for ${bd.title || 'board'}`, onclick: e => { e.preventDefault(); e.stopPropagation(); boardCardMenu(e.currentTarget, bd); } }, icon('more'));
-    return h('div', { class: 'board-card-wrap' }, card, more);
+    return h('div', { class: 'board-card-wrap', 'data-id': bd.id }, card, more);
   }));
 }
 function boardCardMenu(anchor, bd) {
-  const i = S.index.boards.findIndex(x => x.id === bd.id);
+  const manual = sortKey() === 'manual';
+  const ids = manualList().map(b => b.id), i = ids.indexOf(bd.id);
+  const grid = $('.board-grid');
+  const cols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 2;
+  const [back, fwd] = cols > 1 ? ['Move left', 'Move right'] : ['Move up', 'Move down'];
   openMenu(anchor, [
     { label: 'Rename…', onClick: () => renameBoardRemote(bd) },
     { label: 'Duplicate', onClick: () => duplicateBoard(bd) },
-    { label: 'Move earlier', disabled: i <= 0, onClick: () => moveBoard(bd.id, -1) },
-    { label: 'Move later', disabled: i >= S.index.boards.length - 1, onClick: () => moveBoard(bd.id, 1) },
+    ...(manual ? [
+      { label: back, disabled: i <= 0, onClick: () => moveBoard(bd.id, -1) },
+      { label: fwd, disabled: i >= ids.length - 1, onClick: () => moveBoard(bd.id, 1) }
+    ] : []),
     { divider: true },
     { label: 'Delete', danger: true, onClick: () => deleteBoard(bd.id, false) }
   ]);
 }
 const refreshHome = () => { const l = $('.board-grid'); if (l) paintHome(l); };
+
+// ---------- Board list: sorting ----------
+// The chosen sort is a view setting, so it stays on this device. Dates are stored per board in index.json
+// (created once, modified with the board's last save), and the manual order is one list of ids in the same file.
+// Boards made before 1.4.0 have no created date. They sort by their place in the list, which is creation order.
+const SORT_INFO = {
+  manual: { label: 'Manual' },
+  name: { label: 'Name', def: 'asc', asc: 'A to Z', desc: 'Z to A' },
+  count: { label: 'Item count', def: 'desc', asc: 'Fewest first', desc: 'Most first' },
+  created: { label: 'Date created', def: 'desc', asc: 'Oldest first', desc: 'Newest first' },
+  modified: { label: 'Date modified', def: 'desc', asc: 'Oldest first', desc: 'Newest first' }
+};
+const sortKey = () => (SORT_INFO[S.prefs.sort] ? S.prefs.sort : 'manual');
+function sortDir() {
+  const k = sortKey();
+  if (k === 'manual') return null;
+  return S.prefs.sortDir === 'asc' || S.prefs.sortDir === 'desc' ? S.prefs.sortDir : SORT_INFO[k].def;
+}
+function manualList() {
+  const pos = new Map((S.index.order || []).map((id, i) => [id, i]));
+  const all = S.index.boards.map((b, i) => ({ b, i }));
+  const listed = all.filter(x => pos.has(x.b.id)).sort((a, c) => pos.get(a.b.id) - pos.get(c.b.id));
+  return [...listed, ...all.filter(x => !pos.has(x.b.id))].map(x => x.b);
+}
+function sortedBoards() {
+  const key = sortKey();
+  if (key === 'manual') return manualList();
+  const dir = sortDir() === 'asc' ? 1 : -1;
+  const title = b => String(b.title || 'Untitled tier list');
+  const val = { count: b => b.count || 0, created: b => b.created || 0, modified: b => b.modified || b.created || 0 }[key];
+  return S.index.boards.map((b, i) => ({ b, i })).sort((x, y) => {
+    let c = key === 'name' ? title(x.b).localeCompare(title(y.b), undefined, { numeric: true, sensitivity: 'base' }) : val(x.b) - val(y.b);
+    if (!c) c = x.i - y.i;
+    return c * dir;
+  }).map(x => x.b);
+}
+function paintSortBtn() {
+  const b = $('#sortBtn');
+  if (b) b.replaceChildren(`Sort: ${SORT_INFO[sortKey()].label}`, h('span', { style: { marginLeft: '4px', verticalAlign: 'middle', opacity: '0.6' } }, icon('chevdown', 14)));
+}
+function sortMenu(anchor) {
+  const key = sortKey(), dir = sortDir();
+  const items = Object.entries(SORT_INFO).map(([k, v]) => ({ label: v.label, checked: k === key, onClick: () => setSort(k) }));
+  if (key !== 'manual') items.push({ divider: true }, ...['asc', 'desc'].map(d => ({ label: SORT_INFO[key][d], checked: d === dir, onClick: () => setSort(key, d) })));
+  openMenu(anchor, items);
+}
+function setSort(key, dir) {
+  const changed = key !== sortKey();
+  if (dir) S.prefs.sortDir = dir; else if (changed) S.prefs.sortDir = null;
+  S.prefs.sort = key;
+  savePrefs(); paintSortBtn(); refreshHome();
+  if (key === 'manual' && changed && S.index.boards.length > 1) toast(matchMedia('(hover: none)').matches ? 'Press and hold a board, then drag it to reorder.' : 'Drag boards to reorder them.');
+}
+
+// Manual order: applied at once, written to index.json after a short pause, so a few drags cost one write.
+let orderTimer = 0, orderPending = null;
+function setManualOrder(ids) {
+  S.index.order = ids; orderPending = ids;
+  refreshHome();
+  clearTimeout(orderTimer);
+  orderTimer = setTimeout(flushOrder, isLocal() ? 300 : 4000);
+}
+async function flushOrder() {
+  clearTimeout(orderTimer); orderTimer = 0;
+  const ids = orderPending;
+  if (!ids) return;
+  orderPending = null;
+  try {
+    await updateIndex(idx => { const have = new Set(idx.boards.map(x => x.id)); idx.order = ids.filter(id => have.has(id)); });
+  } catch (e) {
+    if (!orderPending) orderPending = ids;
+    toast(friendlyError(e));
+  }
+  if (orderPending) { S.index.order = orderPending; refreshHome(); }
+}
+
+// Drag and drop for boards: same feel as items. Mouse drags after a few pixels, touch after a short press.
+let bdrag = null, bdBound = false, bdRaf = 0;
+function initBoardDnD(list) {
+  list.addEventListener('pointerdown', onBDown);
+  list.addEventListener('dragstart', e => e.preventDefault());
+  list.addEventListener('contextmenu', e => { if (list.classList.contains('manual') && matchMedia('(hover: none)').matches) e.preventDefault(); });
+  list.addEventListener('click', e => { if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
+  if (bdBound) return;
+  bdBound = true;
+  document.addEventListener('pointermove', onBMove, { passive: false });
+  document.addEventListener('pointerup', onBUp);
+  document.addEventListener('pointercancel', () => cancelBDrag());
+  window.addEventListener('blur', () => cancelBDrag());
+}
+function onBDown(e) {
+  if (bdrag || sortKey() !== 'manual' || S.index.boards.length < 2) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (e.target.closest('.card-more')) return;
+  const wrap = e.target.closest('.board-card-wrap');
+  if (!wrap) return;
+  bdrag = { id: wrap.dataset.id, pointerId: e.pointerId, type: e.pointerType, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, active: false, wrap, timer: 0, target: null };
+  if (e.pointerType !== 'mouse') bdrag.timer = setTimeout(() => { if (bdrag && !bdrag.active) startBDrag(); }, HOLD_MS);
+}
+function onBMove(e) {
+  if (!bdrag || e.pointerId !== bdrag.pointerId) return;
+  bdrag.x = e.clientX; bdrag.y = e.clientY;
+  if (!bdrag.active) {
+    const d = Math.hypot(bdrag.x - bdrag.sx, bdrag.y - bdrag.sy);
+    if (bdrag.type === 'mouse') { if (d > MOUSE_SLOP) startBDrag(); }
+    else if (d > TOUCH_SLOP) { clearTimeout(bdrag.timer); bdrag = null; } // the person is scrolling
+    return;
+  }
+  e.preventDefault();
+  placeBGhost();
+  updateBTarget();
+}
+function startBDrag() {
+  if (!bdrag || bdrag.active) return;
+  closeMenu();
+  const r = bdrag.wrap.getBoundingClientRect();
+  bdrag.active = true;
+  bdrag.offX = bdrag.sx - r.left; bdrag.offY = bdrag.sy - r.top;
+  const g = bdrag.wrap.cloneNode(true);
+  g.classList.add('board-ghost');
+  g.style.width = r.width + 'px'; g.style.height = r.height + 'px';
+  document.body.append(g);
+  bdrag.ghost = g;
+  bdrag.wrap.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* ignore */ } }
+  placeBGhost();
+  updateBTarget();
+  bdRaf = requestAnimationFrame(bScroll);
+}
+function placeBGhost() {
+  const lift = bdrag.type === 'mouse' ? 0 : 18;
+  bdrag.ghost.style.transform = `translate(${bdrag.x - bdrag.offX}px, ${bdrag.y - bdrag.offY - lift}px) scale(1.03)`;
+}
+function updateBTarget() {
+  const list = $('.board-grid');
+  if (!list || !bdrag) return;
+  const others = [...list.querySelectorAll('.board-card-wrap')].filter(w => w.dataset.id !== bdrag.id);
+  let idx = others.length;
+  for (let i = 0; i < others.length; i++) {
+    const r = others[i].getBoundingClientRect();
+    if (bdrag.y < r.top || (bdrag.y <= r.bottom && bdrag.x < r.left + r.width / 2)) { idx = i; break; }
+  }
+  bdrag.target = { idx, ids: others.map(w => w.dataset.id) };
+  const gap = 7;
+  const next = others[idx], prev = others[idx - 1];
+  let x, top, height;
+  if (next) {
+    const nr = next.getBoundingClientRect();
+    const pr = prev ? prev.getBoundingClientRect() : null;
+    const sameRowAsPrev = pr && bdrag.y >= pr.top && bdrag.y <= pr.bottom && Math.abs(pr.top - nr.top) > 2;
+    if (sameRowAsPrev) { x = pr.right + gap; top = pr.top; height = pr.height; }
+    else { x = nr.left - gap; top = nr.top; height = nr.height; }
+  } else {
+    const lr = prev.getBoundingClientRect();
+    x = lr.right + gap; top = lr.top; height = lr.height;
+  }
+  showLine(x, top, height);
+}
+function bScroll() {
+  if (!bdrag || !bdrag.active) return;
+  const edge = 80, y = bdrag.y;
+  let dy = 0;
+  if (y < edge + 40) dy = -Math.ceil(((edge + 40 - y) / edge) * 14);
+  else if (y > innerHeight - edge) dy = Math.ceil(((y - (innerHeight - edge)) / edge) * 14);
+  if (dy) { window.scrollBy(0, dy); updateBTarget(); }
+  bdRaf = requestAnimationFrame(bScroll);
+}
+function endBDrag() {
+  cancelAnimationFrame(bdRaf);
+  if (bdrag) {
+    clearTimeout(bdrag.timer);
+    if (bdrag.ghost) bdrag.ghost.remove();
+    if (bdrag.wrap) bdrag.wrap.classList.remove('dragging');
+  }
+  document.body.classList.remove('is-dragging');
+  hideLine();
+}
+function cancelBDrag() {
+  if (!bdrag) return;
+  const was = bdrag.active;
+  endBDrag();
+  bdrag = null;
+  if (was) suppressClickUntil = Date.now() + 350;
+}
+function onBUp(e) {
+  if (!bdrag || e.pointerId !== bdrag.pointerId) return;
+  if (!bdrag.active) { clearTimeout(bdrag.timer); bdrag = null; return; }
+  const { id, target } = bdrag;
+  endBDrag();
+  bdrag = null;
+  suppressClickUntil = Date.now() + 350;
+  if (!target) return;
+  const ids = target.ids.slice();
+  ids.splice(target.idx, 0, id);
+  if (ids.join() !== manualList().map(b => b.id).join()) setManualOrder(ids);
+}
 
 async function createBoardFlow() {
   const v = await promptBox({ title: 'New board', label: 'Title', placeholder: 'Untitled tier list', confirm: 'Create' });
@@ -3192,7 +3518,8 @@ async function createBoardRemote(b) {
   // Images first, board last: a board never points at a missing file. One write each.
   for (const f of [...referencedImages(b)].filter(f => S.imgs.has(f))) await putImage(dir + f, S.imgs.get(f).blob, message);
   await putFile(bp, ser(b, 2), null, message);
-  await syncIndexEntry(b);
+  const now = Date.now();
+  await syncIndexEntry(b, { created: now, modified: now });
 }
 async function renameBoardRemote(bd) {
   const v = await promptBox({ title: 'Rename board', value: bd.title || '', confirm: 'Rename' });
@@ -3200,7 +3527,7 @@ async function renameBoardRemote(bd) {
   try {
     const f = await getFile(boardPath(bd.id));
     if (f) { const b = parseBoard(f.text); b.id = bd.id; b.title = v.trim(); await putFile(boardPath(bd.id), ser(b, 2), f.sha); }
-    await updateIndex(idx => { const x = idx.boards.find(y => y.id === bd.id); if (x) x.title = v.trim(); });
+    await updateIndex(idx => { const x = idx.boards.find(y => y.id === bd.id); if (x) { x.title = v.trim(); x.modified = Date.now(); } });
     refreshHome();
   } catch (e) { toast(friendlyError(e)); }
 }
@@ -3224,19 +3551,17 @@ async function duplicateBoard(bd) {
     const files = await repoFiles();
     const copies = [...referencedImages(src)].filter(n => files.has(imgDir(bd.id) + n)).map(n => ({ path: imgDir(id) + n, sha: files.get(imgDir(bd.id) + n) }));
     await commitFiles(`Duplicate ${src.title || 'board'}`, () => ({ upload: [{ path: boardPath(id), text: ser(copy, 2) }], copy: copies }));
-    await syncIndexEntry(copy);
+    const now = Date.now();
+    await syncIndexEntry(copy, { created: now, modified: now });
     m.close(); refreshHome(); toast('Board duplicated');
   } catch (e) { m.close(); toast(friendlyError(e)); }
 }
-async function moveBoard(id, dir) {
-  try {
-    await updateIndex(idx => {
-      const i = idx.boards.findIndex(x => x.id === id), j = i + dir;
-      if (i < 0 || j < 0 || j >= idx.boards.length) return;
-      [idx.boards[i], idx.boards[j]] = [idx.boards[j], idx.boards[i]];
-    });
-    refreshHome();
-  } catch (e) { toast(friendlyError(e)); }
+function moveBoard(id, d) {
+  const ids = manualList().map(b => b.id);
+  const i = ids.indexOf(id), j = i + d;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  setManualOrder(ids);
 }
 async function deleteBoard(id, fromBoard) {
   const bd = S.index.boards.find(x => x.id === id) || { title: S.board && S.board.title };
@@ -3248,7 +3573,8 @@ async function deleteBoard(id, fromBoard) {
   try {
     const dir = `boards/${id}/`;
     await commitFiles('Delete board', files => ({ upload: [], remove: [...files.keys()].filter(p => p.startsWith(dir)) }));
-    await updateIndex(idx => { idx.boards = idx.boards.filter(x => x.id !== id); });
+    await updateIndex(idx => { idx.boards = idx.boards.filter(x => x.id !== id); if (Array.isArray(idx.order)) idx.order = idx.order.filter(x => x !== id); });
+    setPendMod(id, 0);
     if (fromBoard) { S.board = null; S.dirty = false; S.conflict = null; }
     m.close();
     if (fromBoard) location.hash = ''; else refreshHome();
@@ -3276,7 +3602,7 @@ async function doRoute() {
       if (plan && (plan.metaChanged || plan.orphans.length) && writesLastHour() < AUTO_CAP && backoffLeftMs() === 0) { renderLoading('Finishing up…'); await flushHousekeeping(); }
     }
   }
-  if (m) { await openBoard(m[1]); return; }
+  if (m) { flushOrder(); await openBoard(m[1]); return; }
   try { if (!S.index.sha && !S.index.boards.length) await loadIndex(); } catch (e) { renderFatal(e); return; }
   await renderHome();
 }
@@ -3326,7 +3652,7 @@ function boot() {
     if (S.pauseAuto || !S.draftOk || S.draftDirty) { e.preventDefault(); e.returnValue = ''; }
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
+    if (document.hidden) { flushOrder(); if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
     else checkRemote();
   });
   window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) { if (isLocal()) saveNow(false); else flushDraft(); } });

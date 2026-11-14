@@ -402,14 +402,18 @@ body { min-height: 100vh; min-height: 100dvh; }
 .frame-row input { flex: 1; min-width: 0; }
 .frame-row output { width: 46px; flex: none; text-align: right; color: var(--text-3); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
-  .controls { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; }
-  .controls .search { order: -1; flex: none; margin-left: 0; width: 100%; }
-  .ctl-group { display: block; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-  .ctl-row { justify-content: space-between; min-height: 48px; padding: 4px 16px; font-size: 16px; color: var(--text); }
-  .ctl-row + .ctl-row { border-top: 1px solid var(--sep); }
-  .ctl-row input[type="range"] { flex: 1; width: auto; min-width: 0; margin: 0 0 0 16px; }
+  /* Row 1: Size slider across the full width. Row 2: Names left, Image fit right. Row 3: search, just above the board. */
+  .controls { gap: 2px 16px; margin-top: 8px; }
+  .ctl-row { font-size: 15px; }
+  .ctl-group > .ctl-row:first-child { flex: 1 1 100%; }
+  .ctl-group > .ctl-row:first-child input[type="range"] { flex: 1; width: auto; min-width: 0; }
+  .ctl-group > .ctl-row:last-child { margin-left: auto; }
+  .controls .search { flex: 1 1 100%; margin: 6px 0 0; }
   .frame-box.wide { aspect-ratio: 5 / 2; }
 }
+/* Full-width segmented control: equal segments, same height as the other buttons (36 px, 44 px on touch screens) */
+.seg.block { display: flex; width: 100%; }
+.seg.block button { flex: 1; padding-block: 6px; }
 </style>
 </head>
 <body>
@@ -438,7 +442,10 @@ body { min-height: 100vh; min-height: 100dvh; }
 //        so boards stay compatible, but 1.5.0 on another device drops framing when it saves). One theme control in Settings,
 //        reachable from every screen. Grouped view controls on the board. Sheets and menus no longer let a tap fall through
 //        to the control underneath. The save status is a plain label when there is nothing to do.
-const APP_VERSION = '1.6.0';
+// 1.6.1  Settings (and the theme) is reached only from the board list, not from the board menu. Phone view controls: full-width
+//        Size slider, Names and Image fit on one row, search just above the board, no background panel. The theme control
+//        is full width with equal segments, the same height as the other buttons.
+const APP_VERSION = '1.6.1';
 const APP_BUILD = '2026-11-13';
 
 // ---------- Utilities ----------
@@ -1978,8 +1985,8 @@ function pickFiles(multiple, accept = 'image/*') {
 }
 
 // Segmented control
-function segmented(options, current, onPick, label) {
-  const wrap = h('div', { class: 'seg', role: 'group', 'aria-label': label || '' });
+function segmented(options, current, onPick, label, block) {
+  const wrap = h('div', { class: 'seg' + (block ? ' block' : ''), role: 'group', 'aria-label': label || '' });
   for (const [v, text] of options) {
     wrap.append(h('button', { type: 'button', class: v === current ? 'on' : '', 'data-v': v, 'aria-pressed': String(v === current), onclick: () => onPick(v) }, text));
   }
@@ -2451,7 +2458,6 @@ function boardMenu(anchor) {
     { label: 'Import into this board…', onClick: () => importFlow(false) },
     { divider: true },
     ...(isLocal() ? [] : [{ label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause }]),
-    { label: 'Settings…', onClick: openSettings },
     { divider: true },
     { label: 'Reset placements', onClick: resetPlacements },
     { label: 'Delete board', danger: true, onClick: () => deleteBoard(S.board.id, true) }
@@ -3523,8 +3529,7 @@ async function moveLocalFlow(skipConfirm) {
 
 function openSettings() {
   const local = isLocal();
-  const inBoard = !!S.board;
-  const theme = segmented([['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.prefs.theme, v => { setTheme(v); theme.set(v); }, 'Theme');
+  const theme = segmented([['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.prefs.theme, v => { setTheme(v); theme.set(v); }, 'Theme', true);
   const extra = h('div', { class: 'stack lg' });
   const m = modal({
     title: 'Settings',
@@ -3534,14 +3539,13 @@ function openSettings() {
       local ? null : h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour on this browser. GitHub allows about 500, so autosave holds at ${AUTO_CAP} and Save stops at ${HARD_CAP}.`)),
       h('div', { class: 'lbl' }, h('span', {}, local ? 'Storage' : 'Repository'), h('p', { class: 'msg' }, local ? 'This browser only. Boards don’t sync to other devices.' : (S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected'))),
       extra,
-      inBoard && !local ? h('p', { class: 'hint' }, 'To change or remove the connection, close the board and open Settings from the board list.') : null,
       h('div', { class: 'row wrap' }, ...(local ? [
         btn('Export all boards', '', () => { m.close(); exportAll(); }),
-        inBoard ? null : btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); })
+        btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); })
       ] : [
-        inBoard ? null : btn('Change connection…', '', () => { m.close(); renderSetup(); }),
+        btn('Change connection…', '', () => { m.close(); renderSetup(); }),
         btn('Clear image cache', '', async () => { try { await caches.delete('tl-img-v1'); toast('Image cache cleared'); } catch { toast('Nothing to clear'); } }),
-        inBoard ? null : btn('Disconnect', 'danger', async () => {
+        btn('Disconnect', 'danger', async () => {
           if (await confirmBox('This removes the token from this browser. Your boards stay on GitHub.', { title: 'Disconnect?', confirm: 'Disconnect', danger: true })) {
             m.close(); lsDel('tl.cfg'); S.cfg = null; S.mode = null; lsDel('tl.mode'); S.board = null; clearImages(); resetData(); renderSetup();
           }
@@ -3565,7 +3569,7 @@ function openSettings() {
       rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Protection from automatic cleanup'),
         h('p', { class: 'msg' }, p === true ? 'On. The browser won’t clear this site’s data on its own.' : p === false ? 'Off. The browser might clear this site’s data if the device runs low on space.' : 'Not available in this browser.'),
         p === false ? h('div', { class: 'row' }, btn('Request protection', 'sm', async () => { const ok = await requestPersist(); toast(ok ? 'Protection is on.' : 'The browser declined. Export backups regularly.'); })) : null));
-    } else if (!inBoard) {
+    } else {
       let n = 0;
       try { n = (await L.readIndex()).boards.length; } catch { /* no local storage */ }
       if (n) rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Boards on this device'),

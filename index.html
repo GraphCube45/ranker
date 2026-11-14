@@ -94,6 +94,8 @@ button { cursor: pointer; }
 @keyframes pulse { 50% { opacity: 0.3; } }
 .status .short { display: none; }
 button.status { border: 0; background: transparent; height: 36px; border-radius: 10px; transition: background 0.15s; }
+button.status { -webkit-tap-highlight-color: transparent; }
+button.status:disabled { cursor: default; }
 button.status.clickable { cursor: pointer; }
 button.status.clickable:hover { background: var(--fill); }
 @media (max-width: 520px) {
@@ -110,16 +112,20 @@ button.status.clickable:hover { background: var(--fill); }
 .desc-input { width: 100%; border: 0; background: transparent; resize: none; overflow: hidden; color: var(--text-2); font-size: 15px; padding: 2px 0; outline: none; min-height: 24px; }
 .title-input::placeholder, .desc-input::placeholder { color: var(--text-3); }
 .title-input:focus, .desc-input:focus { box-shadow: 0 0 0 2px var(--accent-soft); }
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin-top: 10px; }
-.size-ctl { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13.5px; }
-.size-ctl input { width: 150px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin-top: 10px; }
+.ctl-group { display: contents; }
+.ctl-row { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13.5px; }
+.ctl-lbl { white-space: nowrap; }
+.ctl-row input[type="range"] { width: 150px; }
 input[type="range"] { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; }
 input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
 input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-2); }
+input.range-fill::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent) var(--p, 0%), var(--fill-2) var(--p, 0%)); }
+input.range-fill::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); border: 0; }
 input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); border: 0; }
 
-.switch { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--text-2); cursor: pointer; user-select: none; }
+.switch { cursor: pointer; user-select: none; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .switch-ui { width: 42px; height: 26px; border-radius: 13px; background: var(--fill-2); position: relative; transition: background 0.2s; flex: none; }
 .switch-ui::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
@@ -378,6 +384,32 @@ body { min-height: 100vh; min-height: 100dvh; }
   input[type="range"] { height: 44px; }
 }
 
+/* 1.6.0: favorites, framing, grouped view controls */
+.grid-head { grid-column: 1 / -1; font-size: 13px; font-weight: 600; color: var(--text-2); margin: 2px 2px -4px; }
+.grid-head:not(:first-child) { margin-top: 12px; }
+.card-meta { display: flex; align-items: center; min-height: 28px; }
+.card-star { position: absolute; right: 8px; bottom: 8px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+@media (hover: hover) { .card-star:hover { background: var(--fill); color: var(--text); } }
+.card-star.on { color: var(--warn); }
+@media (pointer: coarse) { .board-card { padding-bottom: 12px; } .card-meta { min-height: 40px; } .card-star { width: 44px; height: 44px; right: 6px; bottom: 8px; } }
+.frame-box { position: relative; width: 100%; border-radius: 14px; overflow: hidden; background: var(--fill); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 0 0 1px var(--sep); }
+.frame-box:active { cursor: grabbing; }
+.frame-box.sq { aspect-ratio: 1; max-width: 280px; align-self: center; }
+.frame-box.wide { aspect-ratio: 4 / 1; }
+.frame-box img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-touch-callout: none; }
+.frame-row { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--text-2); font-weight: 560; }
+.frame-row span { width: 84px; flex: none; }
+.frame-row input { flex: 1; min-width: 0; }
+.frame-row output { width: 46px; flex: none; text-align: right; color: var(--text-3); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .controls { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; }
+  .controls .search { order: -1; flex: none; margin-left: 0; width: 100%; }
+  .ctl-group { display: block; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  .ctl-row { justify-content: space-between; min-height: 48px; padding: 4px 16px; font-size: 16px; color: var(--text); }
+  .ctl-row + .ctl-row { border-top: 1px solid var(--sep); }
+  .ctl-row input[type="range"] { flex: 1; width: auto; min-width: 0; margin: 0 0 0 16px; }
+  .frame-box.wide { aspect-ratio: 5 / 2; }
+}
 </style>
 </head>
 <body>
@@ -400,7 +432,13 @@ body { min-height: 100vh; min-height: 100dvh; }
 //        tier label text chosen by contrast, higher contrast secondary text, keyboard and screen reader support for menus,
 //        dialogs, switches and groups, theme moved into the board menu, keyboard hints that match the OS,
 //        image URL entry inside the sheet, toasts last longer for long messages, Move up/down keeps unsaved tier edits.
-const APP_VERSION = '1.5.0';
+// 1.6.0  Default board sort is Date created (oldest first). Favorite boards: star a board to keep it at the top in every
+//        sort mode, ordered by the chosen sort inside each group (saved in index.json, written after a short pause, so it syncs).
+//        Framing for Fill images (drag and zoom) and banner zoom plus horizontal position (optional new fields in board.json,
+//        so boards stay compatible, but 1.5.0 on another device drops framing when it saves). One theme control in Settings,
+//        reachable from every screen. Grouped view controls on the board. Sheets and menus no longer let a tap fall through
+//        to the control underneath. The save status is a plain label when there is nothing to do.
+const APP_VERSION = '1.6.0';
 const APP_BUILD = '2026-11-13';
 
 // ---------- Utilities ----------
@@ -459,7 +497,9 @@ const ICONS = {
   upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/>',
   left: '<path d="M15 5l-7 7 7 7"/>',
   right: '<path d="M9 5l7 7-7 7"/>',
-  chevdown: '<path d="M6 9l6 6 6-6"/>'
+  chevdown: '<path d="M6 9l6 6 6-6"/>',
+  star: '<path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  starfill: '<path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.2l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor"/>'
 };
 function icon(name, size = 20) {
   const s = h('span', { class: 'ico', 'aria-hidden': 'true' });
@@ -553,7 +593,7 @@ const S = {
   cfg: null,
   mode: null,        // 'github' (synced), 'local' (this browser only), or null (not chosen yet)
   // Device-only settings (saved in this browser, never synced): theme, tile size, tier label width.
-  prefs: { theme: 'auto', size: null, labelEm: null, names: true, sort: 'manual', sortDir: null },
+  prefs: { theme: 'auto', size: null, labelEm: null, names: true, sort: 'created', sortDir: null },
   // Per-board, per-device view setting: image fit. Loaded when a board opens. (Item names are a device-wide pref.)
   view: { fit: 'fill' },
   search: '',        // item search text: session only, never saved
@@ -579,7 +619,9 @@ const isLocal = () => S.mode === 'local';
 // Set the board list from index.json data. A manual order not yet written to GitHub wins over older data.
 function setIndex(idx, sha) {
   const order = Array.isArray(idx.order) ? idx.order.filter(x => typeof x === 'string') : [];
-  S.index = { boards: idx.boards, order: orderPending || order, sha };
+  // Favorite changes not yet written to the board list win over older data.
+  const boards = idx.boards.map(b => (b.id in favPending ? withFav(b, favPending[b.id]) : b));
+  S.index = { boards, order: orderPending || order, sha };
 }
 function resetData() {
   S.index = { boards: [], order: [], sha: null };
@@ -1220,6 +1262,15 @@ const PALETTE_NAMES = ['Red', 'Coral', 'Orange', 'Yellow', 'Lime', 'Green', 'Min
 const NOTE_MAX = 2000;
 const clampY = v => (typeof v === 'number' && isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 50);
 const safeFile = f => (typeof f === 'string' && /^[\w.-]{1,80}$/.test(f) ? f : null);
+// Framing for a Fill image: x and y are the part of the image kept in view (0 to 100), z is the zoom (1 to 4).
+// The default (centered, no zoom) is stored as nothing, so existing boards don't change.
+const FRAME_Z_MAX = 4;
+const clampZ = v => (typeof v === 'number' && isFinite(v) ? Math.min(FRAME_Z_MAX, Math.max(1, Math.round(v * 100) / 100)) : 1);
+function parseFrame(o) {
+  if (!o || typeof o !== 'object') return null;
+  const f = { x: clampY(o.x), y: clampY(o.y), z: clampZ(o.z) };
+  return f.x === 50 && f.y === 50 && f.z === 1 ? null : f;
+}
 
 function newBoard(title, description) {
   return {
@@ -1233,11 +1284,11 @@ function ser(b, indent) {
   const items = {};
   for (const k of Object.keys(b.items).sort()) {
     const it = b.items[k];
-    items[k] = { id: it.id, name: it.name || '', img: it.img || null, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
+    items[k] = { id: it.id, name: it.name || '', img: it.img || null, link: it.link || null, ...(it.note ? { note: it.note } : {}), ...(it.frame ? { frame: { x: it.frame.x, y: it.frame.y, z: it.frame.z } } : {}) };
   }
   return JSON.stringify({
     v: 1, id: b.id, title: b.title, description: b.description,
-    ...(b.cover ? { cover: b.cover, coverY: clampY(b.coverY) } : {}),
+    ...(b.cover ? { cover: b.cover, coverY: clampY(b.coverY), ...(clampY(b.coverX) !== 50 ? { coverX: clampY(b.coverX) } : {}), ...(clampZ(b.coverZ) !== 1 ? { coverZ: clampZ(b.coverZ) } : {}) } : {}),
     tiers: b.tiers.map(t => ({ id: t.id, name: t.name, color: t.color, items: t.items })),
     pool: b.pool, items
   }, null, indent);
@@ -1248,11 +1299,11 @@ function parseBoard(text) {
     id: String(o.id || ''), title: String(o.title || ''), description: String(o.description || ''),
     // Older boards stored these in board.json. They are now per device, so keep them only as first-time defaults.
     legacy: { fit: o.fit === 'fit' ? 'fit' : 'fill' },
-    cover: safeFile(o.cover), coverY: clampY(o.coverY),
+    cover: safeFile(o.cover), coverY: clampY(o.coverY), coverX: clampY(o.coverX), coverZ: clampZ(o.coverZ),
     tiers: [], pool: [], items: {}
   };
   for (const [k, v] of Object.entries(o.items || {})) {
-    b.items[k] = { id: k, name: String(v.name || ''), img: safeFile(v.img), link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null, note: String(v.note || '').slice(0, NOTE_MAX) };
+    b.items[k] = { id: k, name: String(v.name || ''), img: safeFile(v.img), link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null, note: String(v.note || '').slice(0, NOTE_MAX), frame: parseFrame(v.frame) };
   }
   const seen = new Set();
   for (const t of o.tiers || []) {
@@ -1701,6 +1752,19 @@ const imgUrl = it => (it.img && S.imgs.has(it.img) ? S.imgs.get(it.img).url : it
 // ---------- UI building blocks ----------
 const btn = (label, kind, onclick, extra) => h('button', { class: 'btn' + (kind ? ' ' + kind : ''), type: 'button', onclick, ...(extra || {}) }, label);
 
+// While a sheet or the viewer is open, the page behind it can't be tapped, focused, or read by screen readers.
+function syncInert() {
+  const app = $('#app');
+  if (app) app.inert = !!document.querySelector('.overlay, .viewer');
+}
+// After a tap closes a sheet or menu, stop that same tap from also pressing the control that was underneath it.
+function swallowClick() {
+  let timer = 0;
+  const off = () => { clearTimeout(timer); document.removeEventListener('click', stop, true); };
+  function stop(e) { e.preventDefault(); e.stopPropagation(); off(); }
+  document.addEventListener('click', stop, true);
+  timer = setTimeout(off, 700);
+}
 let modalStack = [];
 const FOCUSABLE = 'button:not(:disabled), input:not([type=file]):not([type=hidden]):not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
 // A sheet. Closing with the X, a tap outside, Escape, or a swipe down asks first when isDirty() says there are unsaved edits.
@@ -1717,6 +1781,7 @@ function modal({ title, body, actions, wide, onClose, dismiss = true, isDirty })
     actions && actions.length ? h('div', { class: 'sheet-actions' }, ...actions) : null);
   overlay.append(sheet);
   document.body.append(overlay);
+  syncInert();
   api.el = sheet;
   api.body = sheet.querySelector('.sheet-body');
   api.setBody = n => api.body.replaceChildren(n);
@@ -1725,8 +1790,11 @@ function modal({ title, body, actions, wide, onClose, dismiss = true, isDirty })
     api.closed = true;
     modalStack = modalStack.filter(m => m !== api);
     overlay.classList.add('out');
-    setTimeout(() => overlay.remove(), 160);
-    if (opener && opener !== document.body && document.contains(opener)) { try { opener.focus({ preventScroll: true }); } catch { /* ignore */ } }
+    // The page stays unreachable until the sheet is gone, so a late tap can't land on it.
+    setTimeout(() => {
+      overlay.remove(); syncInert();
+      if (!modalStack.length && opener && opener !== document.body && document.contains(opener)) { try { opener.focus({ preventScroll: true }); } catch { /* ignore */ } }
+    }, 160);
     if (onClose) onClose(v);
   };
   api.request = async () => {
@@ -1739,7 +1807,10 @@ function modal({ title, body, actions, wide, onClose, dismiss = true, isDirty })
     }
     api.close();
   };
-  overlay.addEventListener('pointerdown', e => { if (dismiss && e.target === overlay) api.request(); });
+  // Close on the click, not the press, and only when the press also started outside the sheet.
+  let downOnScrim = false;
+  overlay.addEventListener('pointerdown', e => { downOnScrim = e.target === overlay; });
+  overlay.addEventListener('click', e => { if (dismiss && downOnScrim && e.target === overlay) api.request(); downOnScrim = false; });
   // Phones: swipe down on the title bar to close, like a system sheet.
   if (dismiss) {
     const head = sheet.querySelector('.sheet-head');
@@ -1762,6 +1833,7 @@ function modal({ title, body, actions, wide, onClose, dismiss = true, isDirty })
       const fast = dy / Math.max(1, Date.now() - t0) > 0.6;
       if (dy > 110 || (fast && dy > 40)) {
         sheet.style.transform = `translateY(${Math.max(dy, 1)}px)`;
+        swallowClick();
         await api.request();
         if (api.closed) { sheet.style.transform = 'translateY(100%)'; return; }
       }
@@ -1860,7 +1932,7 @@ function closeMenu(restore) {
   if (restore && menuAnchor && document.contains(menuAnchor)) { try { menuAnchor.focus({ preventScroll: true }); } catch { /* ignore */ } }
   menuAnchor = null;
 }
-function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
+function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) { closeMenu(); swallowClick(); } }
 function openMenu(anchor, items) {
   closeMenu();
   menuAnchor = anchor;
@@ -1928,7 +2000,6 @@ function applyTheme() {
   else document.documentElement.setAttribute('data-theme', t);
 }
 function setTheme(t) { S.prefs.theme = t; savePrefs(); applyTheme(); }
-function cycleTheme() { setTheme({ auto: 'light', light: 'dark', dark: 'auto' }[S.prefs.theme] || 'auto'); }
 function savePrefs() { lsSet('tl.prefs', S.prefs); }
 
 // ---------- Board view ----------
@@ -1945,6 +2016,7 @@ function tileEl(id) {
   const media = h('div', { class: 'tile-media' + (url ? '' : ' ph') });
   if (url) {
     const im = h('img', { src: url, alt: it.name || '', draggable: 'false', decoding: 'async', referrerpolicy: 'no-referrer' });
+    if (S.view.fit === 'fill' && it.frame) applyFrame(im, it.frame);
     im.addEventListener('error', () => { im.remove(); media.classList.add('ph'); media.append(icon('image', 22)); });
     media.append(im);
   } else {
@@ -2117,28 +2189,86 @@ function syncBanner() {
   if (rec) {
     let im = host.querySelector('img');
     if (!im || im.getAttribute('src') !== rec.url) { im = h('img', { src: rec.url, alt: '', decoding: 'async' }); host.replaceChildren(im); }
-    im.style.objectPosition = `50% ${clampY(b.coverY)}%`;
+    applyFrame(im, { x: clampY(b.coverX), y: clampY(b.coverY), z: clampZ(b.coverZ) });
     host.classList.remove('loading');
   } else {
     host.replaceChildren();
     host.classList.add('loading');
   }
 }
+// Framing: the point (x, y) of the image stays where it is in the frame, and zoom grows the image around that point.
+function applyFrame(img, f) {
+  img.style.objectPosition = `${f.x}% ${f.y}%`;
+  img.style.transformOrigin = `${f.x}% ${f.y}%`;
+  img.style.transform = f.z > 1 ? `scale(${f.z})` : '';
+}
+// Fills the track of a slider up to its thumb (CSS reads --p).
+function paintRange(input) {
+  const lo = Number(input.min) || 0, hi = Number(input.max) || 100;
+  input.style.setProperty('--p', ((Number(input.value) - lo) / (hi - lo)) * 100 + '%');
+}
+// Framing control: drag the preview to move the image, or use the sliders. f ({ x, y, z }) is changed in place.
+// cls is 'sq' for items and 'wide' for banners.
+function frameEditor(f, url, cls) {
+  const img = h('img', { src: url, alt: '', draggable: 'false' });
+  const box = h('div', { class: 'frame-box ' + cls }, img);
+  const rows = {};
+  const row = (key, label, min, max, step, fmt) => {
+    const input = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(f[key]), 'aria-label': label, class: key === 'z' ? 'range-fill' : null });
+    const out = h('output', {});
+    input.addEventListener('input', () => { f[key] = Number(input.value); paint(); });
+    rows[key] = { input, out, fmt };
+    return h('label', { class: 'frame-row' }, h('span', {}, label), input, out);
+  };
+  const el = h('div', { class: 'stack' }, box,
+    row('z', 'Zoom', 1, FRAME_Z_MAX, 0.05, v => Math.round(v * 100) + '%'),
+    row('x', 'Horizontal', 0, 100, 1, v => v + '%'),
+    row('y', 'Vertical', 0, 100, 1, v => v + '%'));
+  function paint() {
+    applyFrame(img, f);
+    for (const k in rows) { const r = rows[k]; r.input.value = String(f[k]); r.out.textContent = r.fmt(f[k]); if (k === 'z') paintRange(r.input); }
+  }
+  // A shown point u of the image sits at p*W + z*imgW*(u - p), so one pixel of finger movement moves the
+  // image by one pixel when p changes by 1 / (W - z*imgW). Axes where the image has no room to move are skipped.
+  let drag = null;
+  box.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const r = box.getBoundingClientRect();
+    drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: f.x, y: f.y, w: r.width, h: r.height };
+    try { box.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    e.preventDefault();
+  });
+  box.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id || !img.naturalWidth) return;
+    const s = Math.max(drag.w / img.naturalWidth, drag.h / img.naturalHeight);
+    const dw = drag.w - f.z * img.naturalWidth * s, dh = drag.h - f.z * img.naturalHeight * s;
+    if (Math.abs(dw) > 1) f.x = clampY(drag.x + ((e.clientX - drag.sx) / dw) * 100);
+    if (Math.abs(dh) > 1) f.y = clampY(drag.y + ((e.clientY - drag.sy) / dh) * 100);
+    paint();
+  });
+  const end = e => { if (drag && e.pointerId === drag.id) drag = null; };
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  paint();
+  return { el, paint, reset() { f.x = 50; f.y = 50; f.z = 1; paint(); } };
+}
+
 function editBanner() {
-  const st = { img: S.board.cover || null, y: clampY(S.board.coverY) };
-  const prev = h('div', { class: 'banner banner-prev' });
-  const slider = h('input', { type: 'range', min: '0', max: '100', step: '1', value: String(st.y), 'aria-label': 'Vertical position' });
-  const pos = h('label', { class: 'lbl' }, h('span', {}, 'Vertical position'), slider);
+  const b0 = S.board;
+  const st = { img: b0.cover || null };
+  const fr = { x: clampY(b0.coverX), y: clampY(b0.coverY), z: clampZ(b0.coverZ) };
+  const stage = h('div', { class: 'stack' });
+  let ed = null;
   const removeBtn = btn('Remove banner', 'ghost sm', () => { st.img = null; paint(); });
+  const resetBtn = btn('Reset framing', 'ghost', () => { if (ed) ed.reset(); });
   function paint() {
     const rec = st.img ? S.imgs.get(st.img) : null;
-    if (rec) { const im = h('img', { src: rec.url, alt: '' }); im.style.objectPosition = `50% ${st.y}%`; prev.replaceChildren(im); }
-    else prev.replaceChildren(icon('image', 36));
+    if (rec) { ed = frameEditor(fr, rec.url, 'wide'); stage.replaceChildren(ed.el); }
+    else { ed = null; stage.replaceChildren(h('div', { class: 'banner banner-prev' }, icon('image', 36))); }
     removeBtn.style.display = st.img ? '' : 'none';
-    pos.style.display = st.img ? '' : 'none';
+    resetBtn.style.display = st.img ? '' : 'none';
   }
-  slider.addEventListener('input', () => { st.y = Number(slider.value); const im = prev.querySelector('img'); if (im) im.style.objectPosition = `50% ${st.y}%`; });
-  const setImage = file => { st.img = file; st.y = 50; slider.value = '50'; paint(); };
+  const setImage = file => { st.img = file; Object.assign(fr, { x: 50, y: 50, z: 1 }); paint(); };
   const uploadBtn = btn('Upload image…', 'sm', async () => {
     const [f] = await pickFiles(false);
     if (!f) return;
@@ -2152,14 +2282,14 @@ function editBanner() {
   const urlBtn = btn('From URL…', 'sm', () => urlRow.toggle());
   const m = modal({
     title: 'Banner', wide: true,
-    isDirty: () => st.img !== (S.board.cover || null) || (st.img && st.y !== clampY(S.board.coverY)),
+    isDirty: () => st.img !== (b0.cover || null) || (!!st.img && (fr.x !== clampY(b0.coverX) || fr.y !== clampY(b0.coverY) || fr.z !== clampZ(b0.coverZ))),
     body: h('div', { class: 'stack' },
-      prev,
-      h('p', { class: 'hint' }, 'A wide image shown above the board title. Images about 4:1 work best. Other shapes are cropped.'),
+      stage,
+      h('p', { class: 'hint' }, 'A wide image shown above the board title. Drag the image to choose which part shows, and use Zoom to crop closer. Images about 4:1 need no cropping.'),
       h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, removeBtn),
-      urlRow,
-      pos),
-    actions: [btn('Cancel', '', () => m.close()), btn('Save', 'primary', () => { m.close(); mutate(b => { b.cover = st.img || null; b.coverY = st.img ? st.y : 50; }); })]
+      urlRow),
+    actions: [resetBtn, h('div', { class: 'grow' }), btn('Cancel', '', () => m.close()),
+      btn('Save', 'primary', () => { const img = st.img || null; m.close(); mutate(b => { b.cover = img; b.coverY = img ? fr.y : 50; b.coverX = img ? fr.x : 50; b.coverZ = img ? fr.z : 1; }); })]
   });
   paint();
 }
@@ -2190,6 +2320,7 @@ function renderStatus() {
   el.onclick = S.conflict ? showConflict : (S.err ? () => saveNow(true) : (isLocal() ? showLocalInfo : null));
   el.classList.toggle('clickable', !!el.onclick);
   el.tabIndex = el.onclick ? 0 : -1;
+  el.disabled = !el.onclick;
   if (sb) sb.disabled = S.saving || (!S.dirty && !S.err && !S.conflict);
 }
 function renderTopbar() { renderStatus(); updateUndoButtons(); }
@@ -2229,8 +2360,9 @@ function renderBoardScreen() {
   desc.value = b.description;
   desc.addEventListener('input', () => { autoGrow(desc); const v = desc.value; mutateText(x => { x.description = v; }, 'desc'); });
 
-  const slider = h('input', { type: 'range', min: String(SIZE_MIN), max: String(SIZE_MAX), step: '2', value: String(tileSize()), 'aria-label': 'Item size', id: 'sizeSlider' });
-  slider.addEventListener('input', () => { S.prefs.size = Number(slider.value); savePrefs(); $('#boardBody').style.setProperty('--tile', slider.value + 'px'); });
+  const slider = h('input', { type: 'range', min: String(SIZE_MIN), max: String(SIZE_MAX), step: '2', value: String(tileSize()), 'aria-label': 'Item size', id: 'sizeSlider', class: 'range-fill' });
+  paintRange(slider);
+  slider.addEventListener('input', () => { paintRange(slider); S.prefs.size = Number(slider.value); savePrefs(); $('#boardBody').style.setProperty('--tile', slider.value + 'px'); });
 
   const top = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-in' },
@@ -2244,9 +2376,11 @@ function renderBoardScreen() {
 
   const fitSeg = segmented([['fill', 'Fill'], ['fit', 'Fit']], S.view.fit, v => { fitSeg.set(v); setView({ fit: v }); }, 'Image fit');
   const controls = h('div', { class: 'controls' },
-    h('label', { class: 'size-ctl' }, h('span', {}, 'Size'), slider),
-    h('label', { class: 'switch' }, h('input', { type: 'checkbox', role: 'switch', checked: namesOn(), onchange: e => setNames(e.target.checked) }), h('span', { class: 'switch-ui' }), h('span', {}, 'Names')),
-    fitSeg, searchBox());
+    h('div', { class: 'ctl-group' },
+      h('label', { class: 'ctl-row' }, h('span', { class: 'ctl-lbl' }, 'Size'), slider),
+      h('label', { class: 'ctl-row switch' }, h('span', { class: 'ctl-lbl' }, 'Names'), h('input', { type: 'checkbox', role: 'switch', checked: namesOn(), onchange: e => setNames(e.target.checked) }), h('span', { class: 'switch-ui' })),
+      h('div', { class: 'ctl-row' }, h('span', { class: 'ctl-lbl' }, 'Image fit'), fitSeg)),
+    searchBox());
 
   const app = $('#app');
   app.replaceChildren(top,
@@ -2316,19 +2450,12 @@ function boardMenu(anchor) {
     { label: 'Export board', onClick: exportBoard },
     { label: 'Import into this board…', onClick: () => importFlow(false) },
     { divider: true },
-    { heading: 'Theme' },
-    ...[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => ({ label: l, checked: S.prefs.theme === v, onClick: () => setTheme(v) })),
+    ...(isLocal() ? [] : [{ label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause }]),
+    { label: 'Settings…', onClick: openSettings },
     { divider: true },
-    ...(isLocal() ? [] : [{ label: S.pauseAuto ? 'Resume autosave' : 'Pause autosave', onClick: togglePause }, { divider: true }]),
     { label: 'Reset placements', onClick: resetPlacements },
     { label: 'Delete board', danger: true, onClick: () => deleteBoard(S.board.id, true) }
   ]);
-}
-function themeButton() {
-  const map = { auto: ['auto', 'Theme: automatic'], light: ['sun', 'Theme: light'], dark: ['moon', 'Theme: dark'] };
-  const [ic, label] = map[S.prefs.theme] || map.auto;
-  const b = h('button', { class: 'icon-btn', type: 'button', title: label, 'aria-label': label, onclick: () => { cycleTheme(); b.replaceWith(themeButton()); } }, icon(ic));
-  return b;
 }
 
 async function resetPlacements() {
@@ -2651,14 +2778,15 @@ function inlineUrl({ placeholder, onUse }) {
 function editItem(id) {
   const orig = S.board.items[id];
   if (!orig) return;
-  const st = { img: orig.img, link: orig.link };
+  const st = { img: orig.img, link: orig.link, frame: orig.frame || null };
   let zone = findZone(S.board, id);
   const preview = h('button', { class: 'item-prev', type: 'button', 'aria-label': 'Enlarge image' });
   const name = h('input', { class: 'field', type: 'text', value: orig.name, placeholder: 'Name (optional if there is an image)', maxlength: '120' });
   const note = h('textarea', { class: 'field note-field', rows: '3', maxlength: String(NOTE_MAX), placeholder: 'Add a note…' });
   note.value = orig.note || '';
   const err = h('p', { class: 'form-err', role: 'alert' });
-  const removeImg = btn('Remove image', 'ghost sm', () => { st.img = null; st.link = null; paint(); });
+  const removeImg = btn('Remove image', 'ghost sm', () => { st.img = null; st.link = null; st.frame = null; paint(); });
+  const frameBtn = btn('Frame…', 'sm', () => openFrame());
   const zoneSel = h('select', { class: 'field', 'aria-label': 'Move to' },
     ...S.board.tiers.map(t => h('option', { value: t.id, selected: t.id === zone }, t.name || '(unnamed tier)')),
     h('option', { value: 'pool', selected: zone === 'pool' }, 'Unranked'));
@@ -2671,6 +2799,7 @@ function editItem(id) {
     preview.replaceChildren(u ? h('img', { src: u, alt: '', referrerpolicy: 'no-referrer' }) : icon('image', 36));
     preview.disabled = !u;
     removeImg.style.display = (st.img || st.link) ? '' : 'none';
+    frameBtn.style.display = curUrl() ? '' : 'none';
     removeImg.disabled = !name.value.trim();
     removeImg.title = name.value.trim() ? '' : 'An item needs a name or an image';
     err.textContent = '';
@@ -2681,12 +2810,12 @@ function editItem(id) {
   const uploadBtn = btn('Upload image…', 'sm', async () => {
     const [f] = await pickFiles(false);
     if (!f) return;
-    try { st.img = await imageFromFile(f); st.link = null; paint(); } catch (e) { toast(imgErrorText(e)); }
+    try { st.img = await imageFromFile(f); st.link = null; st.frame = null; paint(); } catch (e) { toast(imgErrorText(e)); }
   });
   const urlRow = inlineUrl({ placeholder: 'https://example.com/image.jpg', onUse: async v => {
     const r = await imageFromUrl(v);
     if (!r) return false;
-    st.img = r.img || null; st.link = r.link || null; paint();
+    st.img = r.img || null; st.link = r.link || null; st.frame = null; paint();
     return true;
   } });
   const urlBtn = btn('From URL…', 'sm', () => urlRow.toggle());
@@ -2699,17 +2828,34 @@ function editItem(id) {
       const it = b.items[id];
       if (!it) return;
       it.name = nm; it.note = note.value.trim(); it.img = st.img || null; it.link = st.img ? null : (st.link || null);
+      it.frame = (st.img || st.link) ? st.frame : null;
       if (zone !== findZone(b, id) && zoneList(b, zone)) { removeFromAll(b, id); zoneList(b, zone).push(id); }
     });
   };
   name.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
 
+  // Choose which part of the image shows when the board's image fit is Fill.
+  function openFrame() {
+    const u = curUrl();
+    if (!u) return;
+    const f = st.frame ? { ...st.frame } : { x: 50, y: 50, z: 1 };
+    const isDefault = () => f.x === 50 && f.y === 50 && f.z === 1;
+    const ed = frameEditor(f, u, 'sq');
+    const m2 = modal({
+      title: 'Frame image',
+      isDirty: () => JSON.stringify(isDefault() ? null : f) !== JSON.stringify(st.frame),
+      body: h('div', { class: 'stack' }, ed.el, h('p', { class: 'hint' }, 'Drag the image to choose which part shows. Framing applies when image fit is set to Fill.')),
+      actions: [btn('Reset', 'ghost', () => ed.reset()), h('div', { class: 'grow' }), btn('Cancel', '', () => m2.close()),
+        btn('Done', 'primary', () => { st.frame = isDefault() ? null : { x: f.x, y: f.y, z: f.z }; m2.close(); })]
+    });
+  }
+
   const m = modal({
     title: 'Edit item',
-    isDirty: () => name.value.trim() !== (orig.name || '') || note.value.trim() !== (orig.note || '') || st.img !== orig.img || st.link !== orig.link || zone !== findZone(S.board, id),
+    isDirty: () => name.value.trim() !== (orig.name || '') || note.value.trim() !== (orig.note || '') || st.img !== orig.img || st.link !== orig.link || JSON.stringify(st.frame) !== JSON.stringify(orig.frame || null) || zone !== findZone(S.board, id),
     body: h('div', { class: 'stack' },
       preview,
-      h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, removeImg),
+      h('div', { class: 'row wrap center' }, uploadBtn, urlBtn, frameBtn, removeImg),
       urlRow,
       h('label', { class: 'lbl' }, h('span', {}, 'Name'), name),
       h('label', { class: 'lbl' }, h('span', {}, 'Tier'), zoneSel),
@@ -2760,12 +2906,13 @@ function openViewer(startId, override) {
     else if (e.key === 'ArrowRight' && !override) go(1);
   }
   function end() {
-    document.removeEventListener('keydown', key, true); root.remove();
+    document.removeEventListener('keydown', key, true); root.remove(); syncInert();
     if (opener && opener !== document.body && document.contains(opener)) { try { opener.focus({ preventScroll: true }); } catch { /* ignore */ } }
   }
   root.addEventListener('click', e => { if (e.target === root || e.target === im) end(); });
   document.addEventListener('keydown', key, true);
   document.body.append(root);
+  syncInert();
   show();
   close.focus({ preventScroll: true });
 }
@@ -2905,7 +3052,7 @@ async function packBoard(b, view, blobOf, onItem) {
       const blob = await blobOf(it.img);
       if (blob) image = await blobToDataURL(blob); else missing++;
     }
-    items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}) };
+    items[id] = { name: it.name, image, link: it.link || null, ...(it.note ? { note: it.note } : {}), ...(it.frame ? { frame: it.frame } : {}) };
     if (onItem) onItem(++n, ids.length);
   }
   let cover = null;
@@ -2916,7 +3063,7 @@ async function packBoard(b, view, blobOf, onItem) {
   return {
     missing,
     board: {
-      title: b.title, description: b.description, fit: view.fit, ...(cover ? { cover, coverY: clampY(b.coverY) } : {}),
+      title: b.title, description: b.description, fit: view.fit, ...(cover ? { cover, coverY: clampY(b.coverY), coverX: clampY(b.coverX), coverZ: clampZ(b.coverZ) } : {}),
       tiers: b.tiers.map(t => ({ name: t.name, color: t.color, items: t.items })),
       pool: b.pool, items
     }
@@ -3002,7 +3149,8 @@ function parseExportBoard(bd) {
       name: String(v.name || '').slice(0, 120),
       image: typeof v.image === 'string' && /^data:image\//.test(v.image) ? v.image : null,
       link: typeof v.link === 'string' && /^https?:\/\//i.test(v.link) ? v.link : null,
-      note: String(v.note || '').trim().slice(0, NOTE_MAX)
+      note: String(v.note || '').trim().slice(0, NOTE_MAX),
+      frame: parseFrame(v.frame)
     };
   }
   const used = new Set();
@@ -3010,7 +3158,7 @@ function parseExportBoard(bd) {
   const tiers = (Array.isArray(bd.tiers) ? bd.tiers : []).map(t => ({ name: String((t && t.name) ?? '').slice(0, 40), color: normHex(t && t.color) || '#8e8e93', items: take(t && t.items) }));
   const pool = take(bd.pool);
   for (const id of Object.keys(items)) if (!used.has(id)) pool.push(id);
-  return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), fit: bd.fit === 'fit' ? 'fit' : 'fill', cover: typeof bd.cover === 'string' && /^data:image\//.test(bd.cover) ? bd.cover : null, coverY: clampY(bd.coverY), tiers, pool, items };
+  return { title: String(bd.title || '').slice(0, 120), description: String(bd.description || '').slice(0, 600), fit: bd.fit === 'fit' ? 'fit' : 'fill', cover: typeof bd.cover === 'string' && /^data:image\//.test(bd.cover) ? bd.cover : null, coverY: clampY(bd.coverY), coverX: clampY(bd.coverX), coverZ: clampZ(bd.coverZ), tiers, pool, items };
 }
 // A file holds one board (Export board) or several (Export all boards). Returns a list either way.
 function parseExportAll(text) {
@@ -3058,7 +3206,7 @@ async function importOneBoard(data, fallbackTitle, label, pb) {
       pb.set(++n, ids.length, label + 'Processed');
       if (!src.name && !img && !src.link) continue;
       const id = uid(); idMap[old] = id;
-      b.items[id] = { id, name: src.name, img, link: img ? null : src.link, note: src.note };
+      b.items[id] = { id, name: src.name, img, link: img ? null : src.link, note: src.note, frame: img ? src.frame : null };
     }
     const views = lsGet('tl.views', {}) || {};
     views[b.id] = { fit: data.fit };
@@ -3067,7 +3215,7 @@ async function importOneBoard(data, fallbackTitle, label, pb) {
     b.pool = data.pool.map(i => idMap[i]).filter(Boolean);
     if (data.cover) {
       const c = await importedImage({ image: data.cover }, COVER_DIM);
-      if (c) { b.cover = c; b.coverY = data.coverY; }
+      if (c) { b.cover = c; b.coverY = data.coverY; b.coverX = data.coverX; b.coverZ = data.coverZ; }
     }
     pb.set(ids.length, ids.length, label + 'Uploading');
     await createBoardRemote(b);
@@ -3173,8 +3321,8 @@ async function importInto(data) {
           if (!it) continue;
           it.name = src.name;
           if (src.note && (!it.note || useImportedNotes)) it.note = src.note;
-          if (prepared[p.iid]) { it.img = prepared[p.iid]; it.link = null; }
-          else if (src.link) { it.img = null; it.link = src.link; }
+          if (prepared[p.iid]) { it.img = prepared[p.iid]; it.link = null; it.frame = src.frame; }
+          else if (src.link) { it.img = null; it.link = src.link; it.frame = null; }
           removeFromAll(bd, it.id);
           place.push({ ...p, id: it.id });
           over++;
@@ -3182,7 +3330,7 @@ async function importInto(data) {
           const img = prepared[p.iid];
           if (!src.name && !img && !src.link) { skipped++; continue; }
           const id = uid();
-          bd.items[id] = { id, name: src.name, img: img || null, link: img ? null : src.link, note: src.note };
+          bd.items[id] = { id, name: src.name, img: img || null, link: img ? null : src.link, note: src.note, frame: img ? src.frame : null };
           place.push({ ...p, id });
           added++;
         }
@@ -3375,6 +3523,7 @@ async function moveLocalFlow(skipConfirm) {
 
 function openSettings() {
   const local = isLocal();
+  const inBoard = !!S.board;
   const theme = segmented([['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.prefs.theme, v => { setTheme(v); theme.set(v); }, 'Theme');
   const extra = h('div', { class: 'stack lg' });
   const m = modal({
@@ -3385,13 +3534,14 @@ function openSettings() {
       local ? null : h('div', { class: 'lbl' }, h('span', {}, 'GitHub writes'), h('p', { class: 'msg' }, `${writesLastHour()} in the last hour on this browser. GitHub allows about 500, so autosave holds at ${AUTO_CAP} and Save stops at ${HARD_CAP}.`)),
       h('div', { class: 'lbl' }, h('span', {}, local ? 'Storage' : 'Repository'), h('p', { class: 'msg' }, local ? 'This browser only. Boards don’t sync to other devices.' : (S.cfg ? `${S.cfg.owner}/${S.cfg.repo} (${S.cfg.branch})` : 'Not connected'))),
       extra,
+      inBoard && !local ? h('p', { class: 'hint' }, 'To change or remove the connection, close the board and open Settings from the board list.') : null,
       h('div', { class: 'row wrap' }, ...(local ? [
         btn('Export all boards', '', () => { m.close(); exportAll(); }),
-        btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); })
+        inBoard ? null : btn('Connect to GitHub…', '', () => { m.close(); renderSetup(); })
       ] : [
-        btn('Change connection…', '', () => { m.close(); renderSetup(); }),
+        inBoard ? null : btn('Change connection…', '', () => { m.close(); renderSetup(); }),
         btn('Clear image cache', '', async () => { try { await caches.delete('tl-img-v1'); toast('Image cache cleared'); } catch { toast('Nothing to clear'); } }),
-        btn('Disconnect', 'danger', async () => {
+        inBoard ? null : btn('Disconnect', 'danger', async () => {
           if (await confirmBox('This removes the token from this browser. Your boards stay on GitHub.', { title: 'Disconnect?', confirm: 'Disconnect', danger: true })) {
             m.close(); lsDel('tl.cfg'); S.cfg = null; S.mode = null; lsDel('tl.mode'); S.board = null; clearImages(); resetData(); renderSetup();
           }
@@ -3415,7 +3565,7 @@ function openSettings() {
       rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Protection from automatic cleanup'),
         h('p', { class: 'msg' }, p === true ? 'On. The browser won’t clear this site’s data on its own.' : p === false ? 'Off. The browser might clear this site’s data if the device runs low on space.' : 'Not available in this browser.'),
         p === false ? h('div', { class: 'row' }, btn('Request protection', 'sm', async () => { const ok = await requestPersist(); toast(ok ? 'Protection is on.' : 'The browser declined. Export backups regularly.'); })) : null));
-    } else {
+    } else if (!inBoard) {
       let n = 0;
       try { n = (await L.readIndex()).boards.length; } catch { /* no local storage */ }
       if (n) rows.push(h('div', { class: 'lbl' }, h('span', {}, 'Boards on this device'),
@@ -3437,7 +3587,6 @@ async function renderHome() {
       h('h1', { class: 'brand' }, 'Ranker'),
       h('div', { class: 'spacer' }),
       isLocal() ? localChip() : null,
-      themeButton(),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', onclick: openSettings }, icon('gear'))));
   $('#app').replaceChildren(top, h('main', { class: 'home-main' },
     h('div', { class: 'home-actions' },
@@ -3454,6 +3603,61 @@ async function renderHome() {
   try { await loadIndex(); paintHome(list); } catch (e) { if (e.status === 401) renderFatal(e); else if (isLocal()) toast(friendlyError(e)); }
   maybeNudgeBackup();
 }
+// Favorites: the flag lives in index.json, so it syncs. A change shows at once and is written after a short
+// pause, so several taps cost one write (the same way manual order works).
+let favTimer = 0, favPending = {};
+const withFav = (b, on) => { const n = { ...b }; if (on) n.favorite = true; else delete n.favorite; return n; };
+function setFavorite(id, on) {
+  favPending[id] = !!on;
+  S.index.boards = S.index.boards.map(b => (b.id === id ? withFav(b, on) : b));
+  refreshHome();
+  clearTimeout(favTimer);
+  favTimer = setTimeout(flushFavs, isLocal() ? 300 : 4000);
+}
+function toggleFavorite(id) {
+  const bd = S.index.boards.find(x => x.id === id);
+  if (!bd) return;
+  const hadFocus = !!(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('card-star'));
+  setFavorite(id, !bd.favorite);
+  if (hadFocus) { const s = $(`.board-card-wrap[data-id="${id}"] .card-star`); if (s) s.focus({ preventScroll: true }); }
+}
+async function flushFavs() {
+  clearTimeout(favTimer); favTimer = 0;
+  const batch = favPending; favPending = {};
+  const ids = Object.keys(batch);
+  if (!ids.length) return;
+  try {
+    await updateIndex(idx => {
+      for (const id of ids) { const x = idx.boards.find(y => y.id === id); if (x) { if (batch[id]) x.favorite = true; else delete x.favorite; } }
+    });
+  } catch (e) {
+    for (const id of ids) if (!(id in favPending)) favPending[id] = batch[id];
+    toast(friendlyError(e));
+  }
+}
+const flushHome = () => { flushOrder(); flushFavs(); };
+
+// Boards in the same group (favorites or not), in the order they are shown.
+const groupIds = bd => sortedBoards().filter(x => !!x.favorite === !!bd.favorite).map(x => x.id);
+// The manual order with one group reordered. Boards of the other group keep their places.
+function reorderGroup(newGroup) {
+  const set = new Set(newGroup);
+  let k = 0;
+  return manualList().map(b => (set.has(b.id) ? newGroup[k++] : b.id));
+}
+
+function cardEl(bd) {
+  const colors = Array.isArray(bd.colors) ? bd.colors : [];
+  const fav = !!bd.favorite, name = bd.title || 'board';
+  const card = h('a', { class: 'board-card', href: '#/b/' + bd.id },
+    h('div', { class: 'stripe', 'aria-hidden': 'true' }, colors.length ? colors.map(c => h('i', { style: { background: normHex(c) || '#8e8e93' } })) : h('i', { style: { background: 'var(--fill)' } })),
+    h('div', { class: 'card-title' }, bd.title || 'Untitled tier list'),
+    bd.description ? h('div', { class: 'card-desc' }, bd.description) : null,
+    h('div', { class: 'card-meta' }, `${bd.count || 0} ${bd.count === 1 ? 'item' : 'items'}`));
+  const more = h('button', { class: 'icon-btn card-more', type: 'button', 'aria-label': `Options for ${name}`, onclick: e => { e.preventDefault(); e.stopPropagation(); boardCardMenu(e.currentTarget, bd); } }, icon('more'));
+  const star = h('button', { class: 'card-star' + (fav ? ' on' : ''), type: 'button', 'aria-label': `Favorite ${name}`, 'aria-pressed': String(fav), title: fav ? 'Remove from favorites' : 'Add to favorites', onclick: e => { e.preventDefault(); e.stopPropagation(); toggleFavorite(bd.id); } }, icon(fav ? 'starfill' : 'star', 18));
+  return h('div', { class: 'board-card-wrap', 'data-id': bd.id, 'data-fav': fav ? '1' : '0' }, card, more, star);
+}
 function paintHome(list) {
   if (!list.isConnected) return;
   const boards = sortedBoards();
@@ -3462,24 +3666,23 @@ function paintHome(list) {
     list.replaceChildren(h('div', { class: 'empty' }, h('h2', {}, 'No boards yet'), h('p', { class: 'msg' }, 'Create a board to start ranking, or import one from a file.')));
     return;
   }
-  list.replaceChildren(...boards.map(bd => {
-    const colors = Array.isArray(bd.colors) ? bd.colors : [];
-    const card = h('a', { class: 'board-card', href: '#/b/' + bd.id },
-      h('div', { class: 'stripe', 'aria-hidden': 'true' }, colors.length ? colors.map(c => h('i', { style: { background: normHex(c) || '#8e8e93' } })) : h('i', { style: { background: 'var(--fill)' } })),
-      h('div', { class: 'card-title' }, bd.title || 'Untitled tier list'),
-      bd.description ? h('div', { class: 'card-desc' }, bd.description) : null,
-      h('div', { class: 'card-meta' }, `${bd.count || 0} ${bd.count === 1 ? 'item' : 'items'}`));
-    const more = h('button', { class: 'icon-btn card-more', type: 'button', 'aria-label': `Options for ${bd.title || 'board'}`, onclick: e => { e.preventDefault(); e.stopPropagation(); boardCardMenu(e.currentTarget, bd); } }, icon('more'));
-    return h('div', { class: 'board-card-wrap', 'data-id': bd.id }, card, more);
-  }));
+  const nFav = boards.filter(b => b.favorite).length;
+  const nodes = [];
+  boards.forEach((bd, i) => {
+    if (nFav && i === 0) nodes.push(h('h2', { class: 'grid-head' }, 'Favorites'));
+    if (nFav && nFav < boards.length && i === nFav) nodes.push(h('h2', { class: 'grid-head' }, 'Other boards'));
+    nodes.push(cardEl(bd));
+  });
+  list.replaceChildren(...nodes);
 }
 function boardCardMenu(anchor, bd) {
   const manual = sortKey() === 'manual';
-  const ids = manualList().map(b => b.id), i = ids.indexOf(bd.id);
+  const ids = groupIds(bd), i = ids.indexOf(bd.id);
   const grid = $('.board-grid');
   const cols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 2;
   const [back, fwd] = cols > 1 ? ['Move left', 'Move right'] : ['Move up', 'Move down'];
   openMenu(anchor, [
+    { label: bd.favorite ? 'Remove from favorites' : 'Add to favorites', onClick: () => toggleFavorite(bd.id) },
     { label: 'Rename…', onClick: () => renameBoardRemote(bd) },
     { label: 'Duplicate', onClick: () => duplicateBoard(bd) },
     ...(manual ? [
@@ -3500,7 +3703,7 @@ const SORT_INFO = {
   manual: { label: 'Manual' },
   name: { label: 'Name', def: 'asc', asc: 'A to Z', desc: 'Z to A' },
   count: { label: 'Item count', def: 'desc', asc: 'Fewest first', desc: 'Most first' },
-  created: { label: 'Date created', def: 'desc', asc: 'Oldest first', desc: 'Newest first' },
+  created: { label: 'Date created', def: 'asc', asc: 'Oldest first', desc: 'Newest first' },
   modified: { label: 'Date modified', def: 'desc', asc: 'Oldest first', desc: 'Newest first' }
 };
 const sortKey = () => (SORT_INFO[S.prefs.sort] ? S.prefs.sort : 'manual');
@@ -3517,15 +3720,20 @@ function manualList() {
 }
 function sortedBoards() {
   const key = sortKey();
-  if (key === 'manual') return manualList();
-  const dir = sortDir() === 'asc' ? 1 : -1;
-  const title = b => String(b.title || 'Untitled tier list');
-  const val = { count: b => b.count || 0, created: b => b.created || 0, modified: b => b.modified || b.created || 0 }[key];
-  return S.index.boards.map((b, i) => ({ b, i })).sort((x, y) => {
-    let c = key === 'name' ? title(x.b).localeCompare(title(y.b), undefined, { numeric: true, sensitivity: 'base' }) : val(x.b) - val(y.b);
-    if (!c) c = x.i - y.i;
-    return c * dir;
-  }).map(x => x.b);
+  let list;
+  if (key === 'manual') list = manualList();
+  else {
+    const dir = sortDir() === 'asc' ? 1 : -1;
+    const title = b => String(b.title || 'Untitled tier list');
+    const val = { count: b => b.count || 0, created: b => b.created || 0, modified: b => b.modified || b.created || 0 }[key];
+    list = S.index.boards.map((b, i) => ({ b, i })).sort((x, y) => {
+      let c = key === 'name' ? title(x.b).localeCompare(title(y.b), undefined, { numeric: true, sensitivity: 'base' }) : val(x.b) - val(y.b);
+      if (!c) c = x.i - y.i;
+      return c * dir;
+    }).map(x => x.b);
+  }
+  // Favorites come first in every mode. The list above is in a fixed order, so each group keeps it.
+  return [...list.filter(b => b.favorite), ...list.filter(b => !b.favorite)];
 }
 function paintSortBtn() {
   const b = $('#sortBtn');
@@ -3584,7 +3792,7 @@ function initBoardDnD(list) {
 function onBDown(e) {
   if (bdrag || sortKey() !== 'manual' || S.index.boards.length < 2) return;
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (e.target.closest('.card-more')) return;
+  if (e.target.closest('.card-more, .card-star')) return;
   const wrap = e.target.closest('.board-card-wrap');
   if (!wrap) return;
   bdrag = { id: wrap.dataset.id, pointerId: e.pointerId, type: e.pointerType, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, active: false, wrap, timer: 0, target: null };
@@ -3628,7 +3836,9 @@ function placeBGhost() {
 function updateBTarget() {
   const list = $('.board-grid');
   if (!list || !bdrag) return;
-  const others = [...list.querySelectorAll('.board-card-wrap')].filter(w => w.dataset.id !== bdrag.id);
+  const grp = bdrag.wrap.dataset.fav;
+  const others = [...list.querySelectorAll('.board-card-wrap')].filter(w => w.dataset.id !== bdrag.id && w.dataset.fav === grp);
+  if (!others.length) { bdrag.target = null; hideLine(); return; }
   let idx = others.length;
   for (let i = 0; i < others.length; i++) {
     const r = others[i].getBoundingClientRect();
@@ -3686,7 +3896,8 @@ function onBUp(e) {
   if (!target) return;
   const ids = target.ids.slice();
   ids.splice(target.idx, 0, id);
-  if (ids.join() !== manualList().map(b => b.id).join()) setManualOrder(ids);
+  const bd = S.index.boards.find(x => x.id === id);
+  if (bd && ids.join() !== groupIds(bd).join()) setManualOrder(reorderGroup(ids));
 }
 
 async function createBoardFlow() {
@@ -3746,11 +3957,13 @@ async function duplicateBoard(bd) {
   } catch (e) { m.close(); toast(friendlyError(e)); }
 }
 function moveBoard(id, d) {
-  const ids = manualList().map(b => b.id);
+  const bd = S.index.boards.find(x => x.id === id);
+  if (!bd) return;
+  const ids = groupIds(bd);
   const i = ids.indexOf(id), j = i + d;
   if (i < 0 || j < 0 || j >= ids.length) return;
   [ids[i], ids[j]] = [ids[j], ids[i]];
-  setManualOrder(ids);
+  setManualOrder(reorderGroup(ids));
 }
 async function deleteBoard(id, fromBoard) {
   const bd = S.index.boards.find(x => x.id === id) || { title: S.board && S.board.title };
@@ -3791,7 +4004,7 @@ async function doRoute() {
       if (plan && (plan.metaChanged || plan.orphans.length) && writesLastHour() < AUTO_CAP && backoffLeftMs() === 0) { renderLoading('Finishing up…'); await flushHousekeeping(); }
     }
   }
-  if (m) { flushOrder(); await openBoard(m[1]); return; }
+  if (m) { flushHome(); await openBoard(m[1]); return; }
   try { if (!S.index.sha && !S.index.boards.length) await loadIndex(); } catch (e) { renderFatal(e); return; }
   await renderHome();
 }
@@ -3827,6 +4040,8 @@ function boot() {
   // An earlier build stored the label width in pixels. Convert it to a multiple of the label text size.
   if (S.prefs.labelW && !S.prefs.labelEm) S.prefs.labelEm = Math.round((S.prefs.labelW / Math.min(26, Math.max(14, tileSize() * 0.22))) * 100) / 100;
   delete S.prefs.labelW;
+  // 1.6.0 changed the default sort. Apply it once, then keep whatever the person picks.
+  if (S.prefs.sortV !== 2) { S.prefs.sort = 'created'; S.prefs.sortDir = null; S.prefs.sortV = 2; savePrefs(); }
   S.cfg = lsGet('tl.cfg', null);
   S.mode = S.cfg ? 'github' : (lsGet('tl.mode', null) === 'local' ? 'local' : null);
   applyTheme();
@@ -3841,7 +4056,7 @@ function boot() {
     if (S.pauseAuto || !S.draftOk || S.draftDirty) { e.preventDefault(); e.returnValue = ''; }
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { flushOrder(); if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
+    if (document.hidden) { flushHome(); if (S.board && S.dirty && !S.pauseAuto) { flushDraft(); tick(true); } }
     else checkRemote();
   });
   window.addEventListener('pagehide', () => { if (S.board && S.dirty && !S.pauseAuto) { if (isLocal()) saveNow(false); else flushDraft(); } });
